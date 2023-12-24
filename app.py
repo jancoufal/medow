@@ -1,30 +1,53 @@
+from dataclasses import dataclass
+from dataclass_binder import Binder
+from pathlib import Path
 from flask import Flask
-import yaml
 import os
 
-config = {}
+
+CONFIG_FILE: Path = Path("config.toml")
+CONFIG = None
 app = Flask(__name__)
+
+
+@dataclass
+class ConfigServer:
+	host: str
+	port: int
+
+
+@dataclass
+class ConfigPersistence:
+	sqlite_datafile: Path
+
+
+@dataclass
+class Config:
+	debug: bool
+	server: ConfigServer
+	persistence: ConfigPersistence
 
 
 @app.route('/')
 def hello_world():  # put application's code here
-	sqldata_file = config["persistence"]["sqlite_datafile"]
+	sqldata_file = CONFIG.persistence.sqlite_datafile
 
-	return f"<pre>Hello, {config};\n{os.path.exists(sqldata_file)=}</pre>"
+	return f"<pre>Hello, {CONFIG};\n{os.path.exists(sqldata_file)=}</pre>"
 
 
 if __name__ == "__main__":
-	with open("config.yaml") as f:
-		config = yaml.load(f, Loader=yaml.Loader)
+	CONFIG = Binder(Config).parse_toml(CONFIG_FILE)
 
-	if config["server"]["port"] is None:
-		raise ValueError("Server port not specified in config.yaml")
+	print(CONFIG)
 
-	if config["server"]["debug"]:
-		config["persistence"]["sqlite_datafile"] = os.getcwd() + config["persistence"]["sqlite_datafile"]
+	if CONFIG.server.port is None:
+		raise ValueError(f"Server port not specified in '{CONFIG_FILE}'")
+
+	if CONFIG.debug:
+		CONFIG.persistence.sqlite_datafile = Path(os.getcwd()) / CONFIG.persistence.sqlite_datafile
 
 	app.run(
-		host=config["server"]["host"],
-		port=config["server"]["port"],
-		debug=config["server"]["debug"]
+		host=CONFIG.server.host,
+		port=CONFIG.server.port,
+		debug=CONFIG.debug
 	)
