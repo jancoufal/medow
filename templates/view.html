@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+
+{% block content %}
+<div id="image-list">
+
+	{% for image in page_data.images %}
+	<div class="image-view">
+		<div class="image-view-header">
+			<span class="image-scrap-info" data-tooltip-location="right" data-tooltip="item info:
+date: {{ image.datetime }}
+age: {{image.age}}">&#9432;</span>
+			<span class="image-scrap-name">name: <span class="image-scrap-name-value">{{ image.name }}</span></span>
+			<span class="image-scrap-cleaner"></span>
+		</div>
+		<img src="{{ page_data.current.image_dir + image.local_path }}" />
+	</div>
+	{% endfor %}
+
+</div>
+{% endblock %}

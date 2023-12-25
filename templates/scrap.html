@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+
+{% block content %}
+
+<div class="form-container">
+	<form method="GET">
+		<fieldset>
+			<label for="auth-key">Enter auth key:</label>
+			<input type="text" maxlength="16" id="auth-key" name="auth-key" value="{{ page_data.request.args.get('auth-key', '') }}" />
+			<button type="submit" value="auth">auth & scrap</button>
+		</fieldset>
+	</form>
+</div>
+
+{% if page_data.auth_error %}
+<dl class="error-box">
+	<dt>{{ page_data.auth_error.title }}</dt>
+	<dd>{{ page_data.auth_error.message }}</dd>
+</dl>
+{% endif %}
+
+{% if page_data.scrapper_results %}
+<dl class="scrap-results">
+{%- for scrapper_key, scrapper_result in page_data.scrapper_results.items() -%}
+	<dt>{{ scrapper_result|e }}</dt>
+	<dd>
+		{%- if scrapper_result.items_succeeded_count > 0 -%}
+		<div class="counter">succ count: {{ scrapper_result.items_succeeded_count }}</div>
+		<table class="success">
+			<tr>
+				<th>relative file path</th>
+				<th>remote file url</th>
+			</tr>
+			{%- for item in scrapper_result.items_succeeded -%}
+			<tr>
+				<td>{{ item.success_info.relative_file_path|e }}</td>
+				<td>{{ item.success_info.remote_file_url|e }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		{%- endif -%}
+
+		{%- if scrapper_result.items_failed_count > 0 -%}
+		<div class="counter">failed count: {{ scrapper_result.items_failed_count }}</div>
+		<table class="failed">
+			<tr>
+				<th>item to download</th>
+				<th>exc value</th>
+				<!-- th>exc traceback</th -->
+			</tr>
+			{%- for item in scrapper_result.items_failed -%}
+			<tr>
+				<td>{{ item.error_info.item_to_download|e }}</td>
+				<td>{{ item.error_info.e_info.value|e }}</td>
+				<!-- td><pre style="text-align: left;">
+					{%- for tb_line in item.error_info.e_info.formatted_exception -%}
+					{{- tb_line|trim|e -}}<br/>
+					{%- endfor -%}
+				</pre></td -->
+			</tr>
+			{% endfor %}
+		</table>
+		{%- endif -%}
+	</dd>
+{%- endfor -%}
+</dl>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,436 @@
+@text-color: peru;
+@bg-color: lighten(black, 5%);
+@table-border-color: darken(chocolate, 20%);
+@link-color: deeppink;
+@link-color-active: gold;
+@link-color-selected: lawngreen;
+@line-color: blueviolet;
+@error-box-border-color: darken(red, 20%);
+@error-box-bg-color: darken(red, 45%);
+
+body {
+	--font-family: 'Trebuchet MS', 'Lucida Sans Unicode', 'Lucida Grande', 'Lucida Sans', Arial, sans-serif;
+	--font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+	font-size: 110%;
+	font-family: 'Courier New', Courier, monospace;
+	margin: 0;
+	padding: 0.2em 1em;
+	color: @text-color;
+	background-color: @bg-color;
+
+	.srapper-result {
+		width: 100%;
+	}
+
+	pre.dev-output {
+		font-size: 110%;
+		border: 2px dotted @line-color;
+		&:hover {
+			color: lime;
+			transition: all 100ms ease;	
+		}
+	}
+
+	a {
+		color: @link-color;
+		text-decoration-line: none;
+		&:visited { color: @link-color; }
+		&.selected { color: @link-color-selected; }
+		&:hover { color: @link-color-active; }
+		&:active { color: @link-color-active; }
+	}
+
+	ul#navigation {
+		display: block;
+		font-size: 120%;
+		font-weight: bold;
+		margin: 0 0 1em 0;
+		padding: 0.2em 0.2em;
+		list-style: none;
+		border-bottom: 1px solid @line-color;
+
+		li {
+			display: inline-block;
+			margin-left: 0.5em;
+			&::before {
+				--color: lighten(@bg-color, 15%);
+				--content: "_";
+			}
+		}
+	}
+
+	div.form-container {
+
+		fieldset {
+			font-size: 1em;
+			padding: 0.5em;
+			border: 1px solid red;
+			border-width: 0;
+			line-height: 1.4em;
+		}
+
+		.input-base {
+			font: inherit;
+			padding: 0.2em 0.5em;
+			margin: 0.1em 0.1em;
+			float: left;
+
+			/* the following ensures they're all using the same box-model for rendering */
+			-moz-box-sizing: content-box; /* or `border-box` */
+			-webkit-box-sizing: content-box;
+			box-sizing: content-box;
+		}
+
+		label {
+			.input-base();
+			color: darken(@text-color, 5%);
+		}
+
+		input {
+			.input-base();
+			width: 16em;
+			color: @link-color;
+			border: none;
+			border-bottom: 1px dotted @line-color;
+			background-color: @bg-color;
+
+			&:hover, &:focus {
+				background-color: lighten(@bg-color, 10%);
+				transition: all 100ms ease;	
+			}
+		}
+
+		button {
+			.input-base();
+			color: @link-color;
+			background-color: transparent;
+			border: 1px dotted @line-color;
+
+			&:hover, &:focus {
+				color: @link-color-active;
+				transition: all 100ms ease;	
+			}
+		}
+	}
+
+	dl.error-box {
+		border: 3px solid @error-box-border-color;
+		border-radius: 0.2em;
+		background-color: @error-box-bg-color;
+		padding: 0.5em;
+
+		dt {
+			color: red;
+			font-weight: bold;
+		}
+
+		dd {
+			margin: 0.5em 1em;
+			color: darken(yellow, 15%);
+		}
+	}
+
+	div#footer {
+		text-align: right;
+		color: darkslateblue;
+		margin: 1em 0 0 0;
+		padding: 0.2em 0.8em;
+		border-top: 1px solid @line-color;
+
+		.copyleft-sign {
+			display: inline-block;
+			-webkit-transform: rotateY(180deg);
+			-moz-transform: rotateY(180deg);
+			-o-transform: rotateY(180deg);
+			-ms-transform: rotateY(180deg);
+		}
+	}
+
+	div#image-list {
+		width: 100%;
+		text-align: center;
+
+		div.image-view {
+			width: min-content;
+			margin: 1em auto 0 auto;
+
+			&-header {
+				font-size: 70%;
+			}
+
+			.image-scrap {
+				&-info {
+					display: block;
+					float: left;
+					cursor: default;
+					&:hover {
+						color: @link-color-active;
+					}
+				}
+				&-datetime {
+					--background-color: yellow;
+				}
+				&-name {
+					display: block;
+					float: right;
+					--background-color: dodgerblue;
+
+					&-value {
+						--background-color: indianred;
+					}
+				}
+				&-cleaner {
+					clear: both;
+				}
+			}
+
+			img {
+				max-width: max-content;
+				height: auto;
+			}
+		}
+	}
+
+	dl.scrap-results {
+		dt {
+			font-weight: bold;
+			margin: 1.5em 0 1em 0;
+		}
+
+		dd {
+			.counter {
+				margin-top: 1em;
+				font-weight: bold;
+			}
+			table {
+				font-size: 0.7em;
+				border-collapse: collapse;
+
+				* {
+					margin: 0;
+					padding: 0.1em 1em;
+				}
+
+				&.success tr th { background-color: darkgreen; }
+				&.failed tr th { background-color: darkred; }
+
+				tr {
+					&:hover {
+						background-color: darken(@link-color-active, 40%);
+					}
+					th {
+						font-weight: bold;
+						border: 1px solid @table-border-color;
+						background-color: darken(@link-color-active, 35%);
+					}
+
+					td {
+						border: 1px solid @table-border-color;
+
+						span {
+							padding: 0;
+							margin: 0;
+						}
+						.success_count { color: limegreen; }
+						.fail_count { color: red; }
+					}
+				}
+			}
+		}
+	}
+
+	table.error-table {
+		border-collapse: collapse;
+
+		* {
+			margin: 0;
+			padding: 0.2em 1em;
+			text-align: left;
+		}
+
+		tr:hover {
+			background-color: darken(@link-color-active, 40%);
+		}
+
+		td {
+			vertical-align: top;
+			text-align: left;
+			border: 1px solid @text-color;
+		}
+
+		.key {
+			font-weight: bold;
+		}
+
+		.value {
+			text-align: left;
+		}
+	}
+}
+
+// tooltip
+/* 
+  You want a simple and fancy tooltip?
+  Just copy all [data-tooltip] blocks:
+*/
+[data-tooltip] {
+	position: relative;
+	z-index: 10;
+}
+
+/* Positioning and visibility settings of the tooltip */
+[data-tooltip]:before,
+[data-tooltip]:after {
+	position: absolute;
+	visibility: hidden;
+	opacity: 0;
+	left: 50%;
+	bottom: calc(100% + 5px); /* 5px is the size of the arrow */
+	pointer-events: none;
+	transition: 0.2s;
+	will-change: transform;
+}
+
+/* The actual tooltip with a dynamic width */
+[data-tooltip]:before {
+	content: attr(data-tooltip);
+	padding: 10px 18px;
+	min-width: 50px;
+	max-width: 300px;
+	width: max-content;
+	width: -moz-max-content;
+	border-radius: 6px;
+	background-color: rgba(59, 72, 80, 0.9);
+	background-image: linear-gradient(30deg,
+		rgba(59, 72, 80, 0.44),
+		rgba(59, 68, 75, 0.44),
+		rgba(60, 82, 88, 0.44));
+	box-shadow: 0px 0px 24px rgba(0, 0, 0, 0.2);
+	color: @text-color;
+	text-align: center;
+	white-space: pre-wrap;
+	transform: translate(-50%, -5px) scale(0.5);
+}
+
+/* Tooltip arrow */
+[data-tooltip]:after {
+	content: '';
+	border-style: solid;
+	border-width: 5px 5px 0px 5px; /* CSS triangle */
+	border-color: rgba(55, 64, 70, 0.9) transparent transparent transparent;
+	transition-duration: 0s; /* If the mouse leaves the element, 
+								the transition effects for the 
+								tooltip arrow are "turned off" */
+	transform-origin: top;   /* Orientation setting for the
+								slide-down effect */
+	transform: translateX(-50%) scaleY(0);
+}
+
+/* Tooltip becomes visible at hover */
+[data-tooltip]:hover:before,
+[data-tooltip]:hover:after {
+	visibility: visible;
+	opacity: 1;
+}
+/* Scales from 0.5 to 1 -> grow effect */
+[data-tooltip]:hover:before {
+	transition-delay: 0.3s;
+	transform: translate(-50%, -5px) scale(1);
+}
+/* 
+	Arrow slide down effect only on mouseenter (NOT on mouseleave)
+*/
+[data-tooltip]:hover:after {
+	transition-delay: 0.5s; /* Starting after the grow effect */
+	transition-duration: 0.2s;
+	transform: translateX(-50%) scaleY(1);
+}
+/*
+	That's it.
+*/
+
+
+
+
+
+
+/*
+	If you want some adjustability
+	here are some orientation settings you can use:
+*/
+
+/* LEFT */
+/* Tooltip + arrow */
+[data-tooltip-location="left"]:before,
+[data-tooltip-location="left"]:after {
+	left: auto;
+	right: calc(100% + 5px);
+	bottom: 50%;
+}
+
+/* Tooltip */
+[data-tooltip-location="left"]:before {
+	transform: translate(-5px, 50%) scale(0.5);
+}
+[data-tooltip-location="left"]:hover:before {
+	transform: translate(-5px, 50%) scale(1);
+}
+
+/* Arrow */
+[data-tooltip-location="left"]:after {
+	border-width: 5px 0px 5px 5px;
+	border-color: transparent transparent transparent rgba(55, 64, 70, 0.9);
+	transform-origin: left;
+	transform: translateY(50%) scaleX(0);
+}
+[data-tooltip-location="left"]:hover:after {
+	transform: translateY(50%) scaleX(1);
+}
+
+
+
+/* RIGHT */
+[data-tooltip-location="right"]:before,
+[data-tooltip-location="right"]:after {
+	left: calc(100% + 5px);
+	bottom: 50%;
+}
+
+[data-tooltip-location="right"]:before {
+	transform: translate(5px, 50%) scale(0.5);
+}
+[data-tooltip-location="right"]:hover:before {
+	transform: translate(5px, 50%) scale(1);
+}
+
+[data-tooltip-location="right"]:after {
+	border-width: 5px 5px 5px 0px;
+	border-color: transparent rgba(55, 64, 70, 0.9) transparent transparent;
+	transform-origin: right;
+	transform: translateY(50%) scaleX(0);
+}
+[data-tooltip-location="right"]:hover:after {
+	transform: translateY(50%) scaleX(1);
+}
+
+
+
+/* BOTTOM */
+[data-tooltip-location="bottom"]:before,
+[data-tooltip-location="bottom"]:after {
+	top: calc(100% + 5px);
+	bottom: auto;
+}
+
+[data-tooltip-location="bottom"]:before {
+	transform: translate(-50%, 5px) scale(0.5);
+}
+[data-tooltip-location="bottom"]:hover:before {
+	transform: translate(-50%, 5px) scale(1);
+}
+
+[data-tooltip-location="bottom"]:after {
+	border-width: 0px 5px 5px 5px;
+	border-color: transparent transparent rgba(55, 64, 70, 0.9) transparent;
+	transform-origin: bottom;
+}

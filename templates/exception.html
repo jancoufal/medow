@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %} - app error{% endblock %}
+
+{% block content %}
+<h2>Error occured, sorry :(</h2>
+
+<table class="error-table">
+	<tr>
+		<td class="key">Endpoint:</td>
+		<td class="value">{{ page_data.exception.endpoint }}</td>
+	</tr>
+	<tr>
+		<td class="key">Type:</td>
+		<td class="value">{{ page_data.exception.type }}</td>
+	</tr>
+	<tr>
+		<td class="key">Value:</td>
+		<td class="value">{{ page_data.exception.value }}</td>
+	</tr>
+	<tr>
+		<td class="key">Traceback:</td>
+		<td class="value"><pre>{{ "\n".join(page_data.exception.traceback) }}</pre></td>
+	</tr>
+</table>
+{% endblock %}

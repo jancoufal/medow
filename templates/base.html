@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="us-en" lang="us-en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta http-equiv="Content-Language" content="us-en" />
+	<meta name="robot" content="noindex, nofollow" />
+	
+	<title>{{ page_data.site.title }}{% block title %}{% endblock %}</title>
+	
+	<link href="/favicon.ico" type="image/x-icon" />
+	<link rel="apple-touch-icon" sizes="180x180" href="/static/favicon/apple-touch-icon.png">
+	<link rel="icon" type="image/png" sizes="32x32" href="/static/favicon/favicon-32x32.png">
+	<link rel="icon" type="image/png" sizes="16x16" href="/static/favicon/favicon-16x16.png">
+	<link rel="manifest" href="/static/favicon/site.webmanifest">
+	<link rel="mask-icon" href="/static/favicon/safari-pinned-tab.svg" color="#5bbad5">
+	<meta name="msapplication-TileColor" content="#da532c">
+	<meta name="theme-color" content="#ffffff">
+
+	<link rel="stylesheet/less" type="text/css" href="{{ page_data.head.less }}" />
+	<script>
+		less = {
+			env: "development",
+			async: false,
+			fileAsync: false,
+			poll: 1000,
+			functions: {},
+			dumpLineNumbers: "comments"
+		};
+	</script>
+	<script src="/static/js/less-min.js" data-env="development" ></script>
+	
+</head>
+<body>
+
+	<ul id="navigation">
+		{%- for nav_item in page_data.navigation -%}
+			{%- if nav_item.href == page_data.current.endpoint -%}
+		<li><a class="selected" href="{{ nav_item.href }}">{{ nav_item.name|safe }}</a></li>
+			{%- else -%}
+		<li><a href="{{ nav_item.href }}">{{ nav_item.name|safe }}</a></li>
+			{%- endif -%}
+		{%- endfor -%}
+	</ul>
+
+	<div id="content">
+		{% block content %}{% endblock %}
+	</div>
+
+	<div id="footer">
+		copyleft (<span class="copyleft-sign">L</span>) 2020 by <a href="{{ page_data.links.griffin }}">griffin</a>
+	</div>
+
+{% if page_data.current.debug and page_data.current.debug == true %}
+	<pre class="dev-output">
+		{{ page_data|pprint|e }}
+	</pre>
+{% endif %}
+
+</body>
+</html>
