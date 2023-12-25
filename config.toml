@@ -1,9 +1,16 @@
 debug = true
 site-title = "MeDoW"
 
+# https://docs.python.org/3/library/logging.html#logging-levels
+#  0 = logging.NOTSET
+# 10 = logging.DEBUG
+# 20 = logging.INFO
+# 30 = logging.WARNING
+# 40 = logging.ERROR
+# 50 = logging.CRITICAL
 [logging]
   format = "%(asctime)s # %(levelname)s [%(name)s] > %(message)s"
-  level = 10 # https://docs.python.org/3/library/logging.html#logging-levels
+  level = 10
 
 [server]
   host = "0.0.0.0"

@@ -28,4 +28,4 @@ class ExceptionInfo(object):
 
 	@property
 	def formatted_exception(self):
-		return traceback.format_exception(etype=self.exception_type, value=self.value, tb=self.traceback)
+		return traceback.format_exception(self.exception_type, value=self.value, tb=self.traceback)
