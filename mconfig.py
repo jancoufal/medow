@@ -6,6 +6,12 @@ from dataclass_binder import Binder
 
 
 @dataclass
+class ConfigLogging:
+	format: str
+	level: int
+
+
+@dataclass
 class ConfigServer:
 	host: str
 	port: int
@@ -32,6 +38,7 @@ class ConfigAuth:
 class Config:
 	debug: bool
 	site_title: str
+	logging: ConfigLogging
 	server: ConfigServer
 	limits: ConfigLimits
 	auth: ConfigAuth

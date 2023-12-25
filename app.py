@@ -1,6 +1,7 @@
+import logging
 import os
-import sys
 import random
+import sys
 import traceback
 from pathlib import Path
 
@@ -9,7 +10,8 @@ from flask import Flask, url_for, render_template, request
 import mconfig
 import scrappers
 
-CONFIG = mconfig.Config.from_file("config.toml")
+CONFIG_FILE = "config.toml"
+CONFIG = mconfig.Config.from_file(CONFIG_FILE)
 app = Flask(__name__)
 
 
@@ -170,21 +172,26 @@ def scrap(scrapper_source: scrappers.Source):
 
 
 if __name__ == "__main__":
-	print(CONFIG)
+	logging.basicConfig(
+		format=CONFIG.logging.format,
+		level=CONFIG.logging.level,
+	)
+
+	logging.debug(CONFIG)
 
 	if CONFIG.server.port is None:
 		raise ValueError(f"Server port not specified in '{CONFIG_FILE}'")
 
-	print(f"{CONFIG.persistence=}")
+	logging.debug(f"{CONFIG.persistence=}")
 
 	if CONFIG.debug:
-		print(f"{CONFIG.debug=}")
-		print(f"{Path(os.getcwd())=}")
+		logging.debug(f"{CONFIG.debug=}")
+		logging.debug(f"{Path(os.getcwd())=}")
 		new_path = Path(os.getcwd()) / CONFIG.persistence.sqlite_datafile
-		print(f"{new_path=}")
+		logging.debug(f"{new_path=}")
 		CONFIG.persistence.sqlite_datafile = new_path
 
-	print(f"{CONFIG.persistence=}")
+	logging.debug(f"{CONFIG.persistence=}")
 
 	app.run(
 		host=CONFIG.server.host,
