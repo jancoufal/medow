@@ -2,51 +2,15 @@ import os
 import sys
 import random
 import traceback
-from dataclasses import dataclass
 from pathlib import Path
-from typing import List
 
-from dataclass_binder import Binder
 from flask import Flask, url_for, render_template, request
 
+import mconfig
 import scrappers
 
-CONFIG_FILE: Path = Path("config.toml")
-CONFIG = None
+CONFIG = mconfig.Config.from_file("config.toml")
 app = Flask(__name__)
-
-
-@dataclass
-class ConfigServer:
-	host: str
-	port: int
-
-
-@dataclass
-class ConfigPersistence:
-	sqlite_datafile: Path
-
-
-@dataclass
-class ConfigLimits:
-	images: int
-	scraps: int
-
-
-@dataclass
-class ConfigAuth:
-	key: str
-	error_messages: List[str]
-
-
-@dataclass
-class Config:
-	debug: bool
-	site_title: str
-	server: ConfigServer
-	limits: ConfigLimits
-	auth: ConfigAuth
-	persistence: ConfigPersistence
 
 
 def get_page_data(page_values: dict=None):
@@ -206,8 +170,6 @@ def scrap(scrapper_source: scrappers.Source):
 
 
 if __name__ == "__main__":
-	CONFIG = Binder(Config).parse_toml(CONFIG_FILE)
-
 	print(CONFIG)
 
 	if CONFIG.server.port is None:
