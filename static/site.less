@@ -18,10 +18,6 @@ body {
 	color: @text-color;
 	background-color: @bg-color;
 
-	.srapper-result {
-		width: 100%;
-	}
-
 	pre.dev-output {
 		font-size: 110%;
 		border: 2px dotted @line-color;
@@ -64,7 +60,7 @@ body {
 		fieldset {
 			font-size: 1em;
 			padding: 0.5em;
-			border: 1px solid red;
+			/* border: 1px solid red; */
 			border-width: 0;
 			line-height: 1.4em;
 		}
@@ -81,9 +77,15 @@ body {
 			box-sizing: content-box;
 		}
 
+		.input-row {
+			clear: both;
+			width: 100%;
+		}
+
 		label {
 			.input-base();
 			color: darken(@text-color, 5%);
+			width: 10em;
 		}
 
 		input {
@@ -95,7 +97,7 @@ body {
 			background-color: @bg-color;
 
 			&:hover, &:focus {
-				background-color: lighten(@bg-color, 10%);
+				background-color: lighten(@bg-color, 3%);
 				transition: all 100ms ease;	
 			}
 		}
@@ -109,6 +111,18 @@ body {
 			&:hover, &:focus {
 				color: @link-color-active;
 				transition: all 100ms ease;	
+			}
+		}
+
+		textarea {
+			.input-base();
+			color: @link-color;
+			background-color: transparent;
+			border: 1px dotted @line-color;
+
+			&:hover, &:focus {
+				background-color: lighten(@bg-color, 3%);
+				transition: all 100ms ease;
 			}
 		}
 	}
@@ -192,6 +206,8 @@ body {
 	}
 
 	dl.scrap-results {
+		width: 100%;
+
 		dt {
 			font-weight: bold;
 			margin: 1.5em 0 1em 0;

@@ -6,9 +6,18 @@
 <div class="form-container">
 	<form method="GET">
 		<fieldset>
-			<label for="auth-key">Enter auth key:</label>
-			<input type="text" maxlength="16" id="auth-key" name="auth-key" value="{{ page_data.request.args.get('auth-key', '') }}" />
-			<button type="submit" value="auth">auth & scrap</button>
+			<div class="input-row">
+				<label for="auth-key">Enter auth key:</label>
+				<input type="text" maxlength="16" id="auth-key" name="auth-key" value="{{ page_data.request.args.get('auth-key', '') }}" />
+			</div>
+			<div class="input-row">
+				<label for="url-list">YT-DL:</label>
+				<textarea id="url-list" cols="80" rows="10"></textarea>
+			</div>
+			<div class="input-row">
+				<label for="scrap-submit">&#x21CA;</label>
+				<button id="scrap-submit" type="submit" value="auth">auth & scrap</button>
+			</div>
 		</fieldset>
 	</form>
 </div>
