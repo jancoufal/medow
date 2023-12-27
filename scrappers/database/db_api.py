@@ -204,7 +204,7 @@ class DbScrapReader(object):
 		self._db = db_api
 		self._source = source
 
-	def read_recent_items(self, item_limit:int):
+	def read_recent_items(self, item_limit: int):
 		def _row_mapper(r):
 			scrap_ts = formatters.str_to_ts(formatters.TIMESTAMP_FORMAT.DATETIME_MS, f"{r[0]} {r[1]}")
 			return {

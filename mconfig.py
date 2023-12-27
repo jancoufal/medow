@@ -7,6 +7,7 @@ from dataclass_binder import Binder
 
 @dataclass
 class ConfigLogging:
+	name: str
 	format: str
 	level: int
 
@@ -15,6 +16,11 @@ class ConfigLogging:
 class ConfigServer:
 	host: str
 	port: int
+
+
+@dataclass
+class ConfigWorkerThread:
+	max_workers: int
 
 
 @dataclass
@@ -39,6 +45,7 @@ class Config:
 	debug: bool
 	site_title: str
 	logging: ConfigLogging
+	worker_thread: ConfigWorkerThread
 	server: ConfigServer
 	limits: ConfigLimits
 	auth: ConfigAuth
