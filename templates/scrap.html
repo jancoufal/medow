@@ -3,12 +3,30 @@
 
 {% block content %}
 
+{% if page_data.auth_error %}
+<dl class="error-box">
+	<dt>{{ page_data.auth_error.title }}</dt>
+	<dd>{{ page_data.auth_error.message }}</dd>
+</dl>
+{% endif %}
+
 <div class="form-container">
 	<form method="GET">
 		<fieldset>
 			<div class="input-row">
 				<label for="auth-key">Enter auth key:</label>
 				<input type="text" maxlength="16" id="auth-key" name="auth-key" value="{{ page_data.request.args.get('auth-key', '') }}" />
+			</div>
+			<div class="input-row">
+				<span>Scrap:</span>
+				<ul class="sources-list">
+					{%- for source in page_data.sources -%}
+						<li>
+							<input type="checkbox" id="source-{{ source.name }}" checked="checked" />
+							<label for="source-{{ source.name }}">{{ source.value }}</label>
+						</li>
+					{%- endfor -%}
+				</ul>
 			</div>
 			<div class="input-row">
 				<label for="url-list">YT-DL:</label>
@@ -21,13 +39,6 @@
 		</fieldset>
 	</form>
 </div>
-
-{% if page_data.auth_error %}
-<dl class="error-box">
-	<dt>{{ page_data.auth_error.title }}</dt>
-	<dd>{{ page_data.auth_error.message }}</dd>
-</dl>
-{% endif %}
 
 {% if page_data.scrapper_results %}
 <dl class="scrap-results">

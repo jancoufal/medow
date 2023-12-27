@@ -69,6 +69,7 @@ body {
 			font: inherit;
 			padding: 0.2em 0.5em;
 			margin: 0.1em 0.1em;
+			--text-align: left;
 			float: left;
 
 			/* the following ensures they're all using the same box-model for rendering */
@@ -82,7 +83,19 @@ body {
 			width: 100%;
 		}
 
-		label {
+		.sources-list {
+			.input-base();
+			list-style: none;
+
+			li {
+				input {
+					width: 1em;
+					height: 1em;
+				}
+			}
+		}
+
+		label, span {
 			.input-base();
 			color: darken(@text-color, 5%);
 			width: 10em;

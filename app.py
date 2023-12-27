@@ -43,7 +43,7 @@ class Task(object):
 def get_page_data(page_values: dict = None):
 	HTML_ENTITY_SYMBOL_HOME = "&#x2302;"
 	HTML_ENTITY_SYMBOL_STATS = "&#x03a3;"  # "&Sigma;"
-	HTML_ENTITY_SYMBOL_RELOAD = "&#x21bb;"
+	HTML_ENTITY_SYMBOL_RELOAD = "&#x21ca;"
 
 	page_data = {
 		"site": GLOBAL_APP_CONTEXT.config.site_title,
@@ -109,6 +109,8 @@ def page_scrap():
 			"args": request.args,
 			"form": request.form,
 		}
+
+		page_data["sources"] = [s for s in scrappers.Source if s is not scrappers.Source.NOOP]
 
 		if request.method == "GET" and "auth-key" in request.args.keys():
 			if GLOBAL_APP_CONTEXT.config.auth.key == request.args.get("auth-key"):
