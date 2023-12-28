@@ -100,6 +100,7 @@ class Roumen(BaseRoumen):
 			href_needle="roumingShow.php"
 		))
 
+
 class RoumenMaso(BaseRoumen):
 	def __init__(self, settings: Settings):
 		super().__init__(Source.ROUMEN_MASO, settings, _RoumenSettings(

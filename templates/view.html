@@ -13,7 +13,7 @@ age: {{image.age}}">&#9432;</span>
 			<span class="image-scrap-name">name: <span class="image-scrap-name-value">{{ image.name }}</span></span>
 			<span class="image-scrap-cleaner"></span>
 		</div>
-		<img src="{{ page_data.current.image_dir + image.local_path }}" />
+		<img src="{{ page_data.current.image_dir + '/' + image.local_path }}" />
 	</div>
 	{% endfor %}
 

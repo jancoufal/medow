@@ -23,6 +23,10 @@ site-title = "MeDoW"
 [persistence]
   sqlite-datafile = "sql/image_box.sqlite3"
 
+[storage]
+  source-static = "images/"
+  yt-dl = "yt_dl/"
+
 [limits]
   images = 200
   scraps = 1000

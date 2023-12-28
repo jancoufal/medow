@@ -63,9 +63,10 @@ def get_page_data(page_values: dict = None):
 		"head": {
 			"less": url_for("static", filename="site.less"),
 		},
+		"page_values": page_values,
 		"current": {
 			"endpoint": None if request.endpoint is None else url_for(request.endpoint, **page_values if page_values is not None else {}),
-			"image_dir": url_for("static", filename="images") + "/",
+			"image_dir": url_for("static", filename=GLOBAL_APP_CONTEXT.config.storage.source_static),
 			"debug": GLOBAL_APP_CONTEXT.config.debug,
 		},
 		"links": {
@@ -80,7 +81,9 @@ def get_page_data(page_values: dict = None):
 			"uptime": GLOBAL_APP_CONTEXT.state.get_uptime(),
 			"int_count": GLOBAL_APP_CONTEXT.state.get_int_count(),
 		},
-		"global_context": GLOBAL_APP_CONTEXT,
+		"config": {
+			"storage": str(GLOBAL_APP_CONTEXT.config.storage),
+		},
 	}
 
 	for s in scrappers.Source:
@@ -135,6 +138,7 @@ def page_scrap():
 				if request.args.get("url-list") is not None:
 					url_list = [url.strip() for url in request.args.get("url-list").split()]
 					for url in url_list:
+						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for url '{url}'.")
 						GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(url, GLOBAL_APP_CONTEXT.logger, GLOBAL_APP_CONTEXT.state))
 
 				# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}

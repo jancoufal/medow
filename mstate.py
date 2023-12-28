@@ -12,7 +12,7 @@ class WebState(object):
 		return formatters.ts_diff_to_str(self._start_time, datetime.datetime.now(), include_ms=False)
 
 	def increment_counter(self):
-		for _ in range(10):
+		for _ in range(2):
 			self._int_count += 1
 			time.sleep(2)
 

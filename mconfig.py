@@ -29,6 +29,12 @@ class ConfigPersistence:
 
 
 @dataclass
+class ConfigStorage:
+	source_static: str
+	yt_dl: str
+
+
+@dataclass
 class ConfigLimits:
 	images: int
 	scraps: int
@@ -50,6 +56,7 @@ class Config:
 	limits: ConfigLimits
 	auth: ConfigAuth
 	persistence: ConfigPersistence
+	storage: ConfigStorage
 
 	@classmethod
 	def from_file(cls, config_file: str) -> "Config":
