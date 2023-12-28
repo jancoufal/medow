@@ -1,8 +1,9 @@
 import datetime
+import time
 
 import scrappers
 from mcontext import AppContext
-from mtaskresult import TaskResult
+from mtaskstate import TaskState, TaskStateEnum
 
 
 class _TaskBase(object):
@@ -12,51 +13,49 @@ class _TaskBase(object):
 		self.name = name
 		self.start_time = datetime.datetime.now()
 
-	def _update_task(self, title: str, is_error: bool):
-		self.ctx.state.update_task_result(TaskResult(
+	def _update_task(self, title: str, state: TaskStateEnum):
+		self.ctx.state.update_task_state(TaskState(
 			self.id,
+			state,
 			self.name,
 			title,
-			is_error,
 			self.start_time,
 			scrappers.util.formatters.ts_diff_to_str(self.start_time, datetime.datetime.now(), include_ms=False)
 		))
 
-	def reset_start_time(self):
-		self.start_time = datetime.datetime.now()
-
 	def on_new(self, description: str):
-		self._update_task(description, False)
+		self._update_task(description, TaskStateEnum.QUEUED)
+
+	def on_start(self, description: str):
+		self.start_time = datetime.datetime.now()
+		self._update_task(description, TaskStateEnum.RUNNING)
 
 	def on_success(self, description: str):
-		self._update_task(description, False)
+		self._update_task(description, TaskStateEnum.FINISHED)
 
 	def on_failure(self, description: str):
-		self._update_task(description, True)
+		self._update_task(description, TaskStateEnum.FAILED)
 
 
 class TaskScrapSource(_TaskBase):
 	def __init__(self, ctx: AppContext, source: scrappers.Source):
-		super().__init__(ctx, "IMG")
+		super().__init__(ctx, source.name)
 		self._source = source
-		self.on_new(f"Scrap task for '{source.name}' enqueued.")
+		self.on_new(f"Scrap task for '{self._source.name}' enqueued.")
 
 	def __call__(self):
-		self.reset_start_time()
-		self.ctx.logger.debug(f"Task 'TaskScrapSource' Started - {self._source}")
-		self.ctx.state.increment_counter()
-		self.ctx.logger.debug(f"Task 'TaskScrapSource' Finished - {self._source}")
-		self.on_failure(f"Images from '{self._source.name}' has *not* been downloaded :(.",)
+		self.on_start(f"Scrap from '{self._source.name}' is running.")
+		time.sleep(2)
+		self.on_failure(f"Images from '{self._source.name}' has *not* been downloaded :(.")
 
 
 class TaskYoutubeDownload(_TaskBase):
 	def __init__(self, ctx: AppContext, url: str):
 		super().__init__(ctx, "YT-DL")
 		self._url = url
+		self.on_new(f"Scrap task for video {self._url}' enqueued.")
 
 	def __call__(self):
-		self.reset_start_time()
-		self.ctx.logger.debug(f"Task 'TaskYoutubeDownload' Started - {self._url}")
-		self.ctx.state.increment_counter()
-		self.ctx.logger.debug(f"Task 'TaskYoutubeDownload' Finished - {self._url}")
+		self.on_start(f"Downloading '{self._url}' is running.""")
+		time.sleep(2)
 		self.on_success(f"Video '{self._url}' has been downloaded.")

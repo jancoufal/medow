@@ -49,7 +49,7 @@ def get_page_data(page_values: dict = None):
 		],
 		"web_state": {
 			"uptime": GLOBAL_APP_CONTEXT.state.get_uptime(),
-			"int_count": GLOBAL_APP_CONTEXT.state.get_int_count(),
+			"next_task_id": GLOBAL_APP_CONTEXT.next_task_id,
 		},
 		"config": {
 			"storage": str(GLOBAL_APP_CONTEXT.config.storage),
@@ -79,7 +79,7 @@ def page_state():
 	state = GLOBAL_APP_CONTEXT.state
 	page_data["state"] = {
 		"uptime": state.get_uptime(),
-		"task_results": state.get_task_results(),
+		"tasks": state.get_task_states(),
 	}
 
 	return render_template("state.html", page_data=page_data)
