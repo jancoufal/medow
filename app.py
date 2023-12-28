@@ -30,27 +30,25 @@ GLOBAL_APP_CONTEXT: AppContext
 
 
 class TaskScrapSource(object):
-	def __init__(self, source: scrappers.Source, logger: logging.Logger, state: mstate.WebState):
+	def __init__(self, ctx: AppContext, source: scrappers.Source):
+		self._ctx = ctx
 		self._source = source
-		self._logger = logger
-		self._state = state
 
 	def __call__(self):
-		self._logger.debug(f"Task 'TaskScrapSource' Started - {self._source}")
-		self._state.increment_counter()
-		self._logger.debug(f"Task 'TaskScrapSource' Finished - {self._source}")
+		self._ctx.logger.debug(f"Task 'TaskScrapSource' Started - {self._source}")
+		self._ctx.state.increment_counter()
+		self._ctx.logger.debug(f"Task 'TaskScrapSource' Finished - {self._source}")
 
 
 class TaskYoutubeDownload(object):
-	def __init__(self, url: str, logger: logging.Logger, state: mstate.WebState):
+	def __init__(self, ctx: AppContext, url: str):
+		self._ctx = ctx
 		self._url = url
-		self._logger = logger
-		self._state = state
 
 	def __call__(self):
-		self._logger.debug(f"Task 'TaskYoutubeDownload' Started - {self._url}")
-		self._state.increment_counter()
-		self._logger.debug(f"Task 'TaskYoutubeDownload' Finished - {self._url}")
+		self._ctx.logger.debug(f"Task 'TaskYoutubeDownload' Started - {self._url}")
+		self._ctx.state.increment_counter()
+		self._ctx.logger.debug(f"Task 'TaskYoutubeDownload' Finished - {self._url}")
 
 
 def get_page_data(page_values: dict = None):
@@ -133,13 +131,13 @@ def page_scrap():
 				for source in scrappers.Source:
 					if request.args.get(f"source-{source.name}") is not None:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for source '{source.name}'.")
-						GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(source, GLOBAL_APP_CONTEXT.logger, GLOBAL_APP_CONTEXT.state))
+						GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(GLOBAL_APP_CONTEXT, source))
 
 				if request.args.get("url-list") is not None:
 					url_list = [url.strip() for url in request.args.get("url-list").split()]
 					for url in url_list:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for url '{url}'.")
-						GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(url, GLOBAL_APP_CONTEXT.logger, GLOBAL_APP_CONTEXT.state))
+						GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(GLOBAL_APP_CONTEXT, url))
 
 				# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
 			else:
