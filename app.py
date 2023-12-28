@@ -1,11 +1,11 @@
+import concurrent.futures
 import logging
 import os
 import random
 import sys
 import traceback
-import concurrent.futures
-from pathlib import Path
 from dataclasses import dataclass
+from pathlib import Path
 
 from flask import Flask, url_for, render_template, request
 
@@ -29,15 +29,28 @@ class AppContext(object):
 GLOBAL_APP_CONTEXT: AppContext
 
 
-class Task(object):
-	def __init__(self, *args, **kwargs):
-		self.args = args
-		self.kwargs = kwargs
+class TaskScrapSource(object):
+	def __init__(self, source: scrappers.Source, logger: logging.Logger, state: mstate.WebState):
+		self._source = source
+		self._logger = logger
+		self._state = state
 
 	def __call__(self):
-		GLOBAL_APP_CONTEXT.logger.debug(f"Task Started {self.args=} {self.kwargs=}")
-		GLOBAL_APP_CONTEXT.state.increment_counter()
-		GLOBAL_APP_CONTEXT.logger.debug(f"Task Finished {self.args=} {self.kwargs=}")
+		self._logger.debug(f"Task 'TaskScrapSource' Started - {self._source}")
+		self._state.increment_counter()
+		self._logger.debug(f"Task 'TaskScrapSource' Finished - {self._source}")
+
+
+class TaskYoutubeDownload(object):
+	def __init__(self, url: str, logger: logging.Logger, state: mstate.WebState):
+		self._url = url
+		self._logger = logger
+		self._state = state
+
+	def __call__(self):
+		self._logger.debug(f"Task 'TaskYoutubeDownload' Started - {self._url}")
+		self._state.increment_counter()
+		self._logger.debug(f"Task 'TaskYoutubeDownload' Finished - {self._url}")
 
 
 def get_page_data(page_values: dict = None):
@@ -66,7 +79,8 @@ def get_page_data(page_values: dict = None):
 		"web_state": {
 			"uptime": GLOBAL_APP_CONTEXT.state.get_uptime(),
 			"int_count": GLOBAL_APP_CONTEXT.state.get_int_count(),
-		}
+		},
+		"global_context": GLOBAL_APP_CONTEXT,
 	}
 
 	for s in scrappers.Source:
@@ -83,8 +97,6 @@ def page_index():
 
 @app.route("/griffin/")
 def page_griffin():
-	for x in range(3):
-		GLOBAL_APP_CONTEXT.task_executor.submit(Task(x))
 	return render_template("griffin.html", page_data=get_page_data())
 
 
@@ -114,7 +126,18 @@ def page_scrap():
 
 		if request.method == "GET" and "auth-key" in request.args.keys():
 			if GLOBAL_APP_CONTEXT.config.auth.key == request.args.get("auth-key"):
-				page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
+
+				for source in scrappers.Source:
+					if request.args.get(f"source-{source.name}") is not None:
+						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for source '{source.name}'.")
+						GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(source, GLOBAL_APP_CONTEXT.logger, GLOBAL_APP_CONTEXT.state))
+
+				if request.args.get("url-list") is not None:
+					url_list = [url.strip() for url in request.args.get("url-list").split()]
+					for url in url_list:
+						GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(url, GLOBAL_APP_CONTEXT.logger, GLOBAL_APP_CONTEXT.state))
+
+				# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
 			else:
 				page_data["auth_error"] = {
 					"title": "Authentication error",

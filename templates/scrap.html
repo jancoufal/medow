@@ -22,7 +22,7 @@
 				<ul class="sources-list">
 					{%- for source in page_data.sources -%}
 						<li>
-							<input type="checkbox" id="source-{{ source.name }}" />
+							<input type="checkbox" id="source-{{ source.name }}" name="source-{{ source.name }}" />
 							<label for="source-{{ source.name }}">{{ source.value }}</label>
 						</li>
 					{%- endfor -%}
@@ -30,7 +30,7 @@
 			</div>
 			<div class="input-row">
 				<label for="url-list">YT-DL:</label>
-				<textarea id="url-list" cols="80" rows="10"></textarea>
+				<textarea id="url-list" name="url-list" cols="80" rows="10">{{ page_data.request.args.get('url-list', '') }}</textarea>
 			</div>
 			<div class="input-row">
 				<label for="scrap-submit">&#x21CA;</label>
