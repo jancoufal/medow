@@ -4,55 +4,26 @@ import os
 import random
 import sys
 import traceback
-from dataclasses import dataclass
 from pathlib import Path
 
 from flask import Flask, url_for, render_template, request
 
 import mconfig
-import mstate
 import scrappers
+from mcontext import AppContext
+from mstate import WebState
+from mtasks import TaskScrapSource, TaskYoutubeDownload
 
 CONFIG_FILE = "config.toml"
 app = Flask(__name__)
 
 
-@dataclass
-class AppContext(object):
-	app: Flask
-	logger: logging.Logger
-	config: mconfig.Config
-	state: mstate.WebState
-	task_executor: concurrent.futures.ThreadPoolExecutor
-
-
 GLOBAL_APP_CONTEXT: AppContext
-
-
-class TaskScrapSource(object):
-	def __init__(self, ctx: AppContext, source: scrappers.Source):
-		self._ctx = ctx
-		self._source = source
-
-	def __call__(self):
-		self._ctx.logger.debug(f"Task 'TaskScrapSource' Started - {self._source}")
-		self._ctx.state.increment_counter()
-		self._ctx.logger.debug(f"Task 'TaskScrapSource' Finished - {self._source}")
-
-
-class TaskYoutubeDownload(object):
-	def __init__(self, ctx: AppContext, url: str):
-		self._ctx = ctx
-		self._url = url
-
-	def __call__(self):
-		self._ctx.logger.debug(f"Task 'TaskYoutubeDownload' Started - {self._url}")
-		self._ctx.state.increment_counter()
-		self._ctx.logger.debug(f"Task 'TaskYoutubeDownload' Finished - {self._url}")
 
 
 def get_page_data(page_values: dict = None):
 	HTML_ENTITY_SYMBOL_HOME = "&#x2302;"
+	HTML_ENTITY_SYMBOL_STATE = "&#x225f;"  # "&#x22f1;"
 	HTML_ENTITY_SYMBOL_STATS = "&#x03a3;"  # "&Sigma;"
 	HTML_ENTITY_SYMBOL_RELOAD = "&#x21ca;"
 
@@ -72,6 +43,7 @@ def get_page_data(page_values: dict = None):
 		},
 		"navigation": [
 			{"name": HTML_ENTITY_SYMBOL_HOME, "href": url_for("page_index"), },
+			{"name": HTML_ENTITY_SYMBOL_STATE, "href": url_for("page_state"), },
 			{"name": HTML_ENTITY_SYMBOL_STATS, "href": url_for("page_stats"), },
 			{"name": HTML_ENTITY_SYMBOL_RELOAD, "href": url_for("page_scrap"), },
 		],
@@ -99,6 +71,18 @@ def page_index():
 @app.route("/griffin/")
 def page_griffin():
 	return render_template("griffin.html", page_data=get_page_data())
+
+
+@app.route("/state/")
+def page_state():
+	page_data = get_page_data()
+	state = GLOBAL_APP_CONTEXT.state
+	page_data["state"] = {
+		"uptime": state.get_uptime(),
+		"task_results": state.get_task_results(),
+	}
+
+	return render_template("state.html", page_data=page_data)
 
 
 @app.route("/stats/")
@@ -260,7 +244,8 @@ if __name__ == "__main__":
 		app,
 		ctx_logger,
 		ctx_config,
-		mstate.WebState(),
+		WebState(),
+		0,  # task_id start
 		concurrent.futures.ThreadPoolExecutor(max_workers=ctx_config.worker_thread.max_workers)
 	)
 

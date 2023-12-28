@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+
+{% block content %}
+<h2>App state</h2>
+<dl class="app-state">
+	<dt>Uptime:</dt>
+	<dd>{{ page_data.state.uptime }}</dd>
+	<dt>Last tasks:</dt>
+	<dd>
+		<table class="scrap-results">
+			<th>Task</th>
+			<tr>
+				<td>fin</td>
+			</tr>
+		</table>
+	</dd>
+</dl>
+{% endblock %}
