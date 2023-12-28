@@ -41,17 +41,17 @@ class TaskScrapSource(_TaskBase):
 	def __init__(self, ctx: AppContext, source: scrappers.Source):
 		super().__init__(ctx, source.name)
 		self._source = source
-		self.on_new(f"Scrap task for '{self._source.name}' enqueued.")
+		self.on_new(f"Scrap task for '{self._source.value}' enqueued.")
 
 	def __call__(self):
-		self.on_start(f"Scrap from '{self._source.name}' is running.")
+		self.on_start(f"Scrap from '{self._source.value}' is running.")
 		time.sleep(2)
-		self.on_failure(f"Images from '{self._source.name}' has *not* been downloaded :(.")
+		self.on_failure(f"Images from '{self._source.value}' has *not* been downloaded :(.")
 
 
 class TaskYoutubeDownload(_TaskBase):
 	def __init__(self, ctx: AppContext, url: str):
-		super().__init__(ctx, "YT-DL")
+		super().__init__(ctx, "YouTube-DL")
 		self._url = url
 		self.on_new(f"Scrap task for video {self._url}' enqueued.")
 
