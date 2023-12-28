@@ -22,7 +22,7 @@
 				<ul class="sources-list">
 					{%- for source in page_data.sources -%}
 						<li>
-							<input type="checkbox" id="source-{{ source.name }}" checked="checked" />
+							<input type="checkbox" id="source-{{ source.name }}" />
 							<label for="source-{{ source.name }}">{{ source.value }}</label>
 						</li>
 					{%- endfor -%}
