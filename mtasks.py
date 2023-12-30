@@ -1,5 +1,10 @@
 import datetime
+import logging
+import sys
 import time
+import traceback
+
+import youtube_dl
 
 import scrappers
 from mcontext import AppContext
@@ -49,6 +54,28 @@ class TaskScrapSource(_TaskBase):
 		self.on_failure(f"Images from '{self._source.value}' has *not* been downloaded :(.")
 
 
+class _YoutubeLogger(object):
+	def __init__(self, logger: logging.Logger):
+		self._l = logger.getChild("youtube_logger")
+
+	def debug(self, message: str):
+		self._l.debug(message)
+
+	def warning(self, message: str):
+		self._l.warning(message)
+
+	def error(self, message: str):
+		self._l.error(message)
+
+
+class _YoutubeProgressHook(object):
+	def __init__(self, logger: logging.Logger):
+		self._l = logger.getChild("progress_hook")
+
+	def __call__(self, *args, **kwargs):
+		self._l.debug(f"Progress hook: {args=} {kwargs=}")
+
+
 class TaskYoutubeDownload(_TaskBase):
 	def __init__(self, ctx: AppContext, url: str):
 		super().__init__(ctx, "YouTube-DL")
@@ -57,5 +84,33 @@ class TaskYoutubeDownload(_TaskBase):
 
 	def __call__(self):
 		self.on_start(f"Downloading '{self._url}' is running.""")
-		time.sleep(2)
-		self.on_success(f"Video '{self._url}' has been downloaded.")
+
+		try:
+			ydl_opts = {
+				"format": "bestaudio/best",
+				"cachedir": False,
+				"call_home": True,
+				"no_color": True,
+				"download_archive": self.ctx.config.storage.yt_dl,
+				"logger": _YoutubeLogger(self.ctx.logger),
+				"progress_hooks": [_YoutubeProgressHook(self.ctx.logger)]
+			}
+
+			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+				ydl.download([self._url])
+
+			self.on_success(f"Video '{self._url}' has been downloaded.")
+
+		except youtube_dl.utils.YoutubeDLError as ex:
+
+			e = sys.exc_info()
+			exception_info = {
+				"exception": {
+					"type": e[0],
+					"value": e[1],
+					"traceback": traceback.format_tb(e[2]),
+				}
+			}
+
+			self.on_failure(f"Video '{self._url}' has *not* been downloaded. Exception: {ex}, {exception_info=}.")
+

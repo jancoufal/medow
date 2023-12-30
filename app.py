@@ -4,6 +4,7 @@ import os
 import random
 import sys
 import traceback
+import socket
 from pathlib import Path
 
 from flask import Flask, url_for, render_template, request
@@ -21,22 +22,22 @@ app = Flask(__name__)
 GLOBAL_APP_CONTEXT: AppContext
 
 
-def get_page_data(page_values: dict = None):
+def get_page_data(ctx: AppContext, page_values: dict = None):
 	HTML_ENTITY_SYMBOL_HOME = "&#x2302;"
 	HTML_ENTITY_SYMBOL_STATE = "&#x225f;"  # "&#x22f1;"
 	HTML_ENTITY_SYMBOL_STATS = "&#x03a3;"  # "&Sigma;"
 	HTML_ENTITY_SYMBOL_RELOAD = "&#x21ca;"
 
 	page_data = {
-		"site": GLOBAL_APP_CONTEXT.config.site_title,
+		"site": ctx.config.site_title,
 		"head": {
 			"less": url_for("static", filename="site.less"),
 		},
 		"page_values": page_values,
 		"current": {
 			"endpoint": None if request.endpoint is None else url_for(request.endpoint, **page_values if page_values is not None else {}),
-			"image_dir": url_for("static", filename=GLOBAL_APP_CONTEXT.config.storage.source_static),
-			"debug": GLOBAL_APP_CONTEXT.config.debug,
+			"image_dir": url_for("static", filename=ctx.config.storage.source_static),
+			"debug": ctx.config.debug,
 		},
 		"links": {
 			"griffin": url_for("page_griffin"),
@@ -48,11 +49,19 @@ def get_page_data(page_values: dict = None):
 			{"name": HTML_ENTITY_SYMBOL_RELOAD, "href": url_for("page_scrap"), },
 		],
 		"web_state": {
-			"uptime": GLOBAL_APP_CONTEXT.state.get_uptime(),
-			"next_task_id": GLOBAL_APP_CONTEXT.next_task_id,
+			"uptime": ctx.state.get_uptime(),
+			"next_task_id": ctx.next_task_id,
+		},
+		"python": {
+			"version": sys.version,
+		},
+		"network": {
+			"hostname": socket.gethostname(),
+			"socket.gethostbyname": socket.gethostbyname(socket.gethostname()),
+			"socket.gethostbyname (local)": socket.gethostbyname(socket.gethostname() + ".local"),
 		},
 		"config": {
-			"storage": str(GLOBAL_APP_CONTEXT.config.storage),
+			"storage": str(ctx.config.storage),
 		},
 	}
 
@@ -65,17 +74,17 @@ def get_page_data(page_values: dict = None):
 
 @app.route("/")
 def page_index():
-	return render_template("home.html", page_data=get_page_data())
+	return render_template("home.html", page_data=get_page_data(GLOBAL_APP_CONTEXT))
 
 
 @app.route("/griffin/")
 def page_griffin():
-	return render_template("griffin.html", page_data=get_page_data())
+	return render_template("griffin.html", page_data=get_page_data(GLOBAL_APP_CONTEXT))
 
 
 @app.route("/state/")
 def page_state():
-	page_data = get_page_data()
+	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	state = GLOBAL_APP_CONTEXT.state
 	page_data["state"] = {
 		"uptime": state.get_uptime(),
@@ -87,7 +96,7 @@ def page_state():
 
 @app.route("/stats/")
 def page_stats():
-	page_data = get_page_data()
+	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	reader = scrappers.DbStatReader.create(GLOBAL_APP_CONTEXT.config.persistence.sqlite_datafile)
 	page_data["stats"] = {
 		"last_scraps": reader.read_last_scraps(GLOBAL_APP_CONTEXT.config.limits.scraps),
@@ -98,7 +107,7 @@ def page_stats():
 
 @app.route("/scrap/", methods=["GET"])
 def page_scrap():
-	page_data = get_page_data()
+	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	try:
 		# debug
 		page_data["request"] = {
@@ -137,7 +146,7 @@ def page_scrap():
 
 @app.route("/view/<source>/")
 def page_view(source):
-	page_data = get_page_data({"source": source})
+	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"source": source})
 	try:
 		reader = scrappers.DbScrapReader.create(GLOBAL_APP_CONTEXT.config.persistence.sqlite_datafile, scrappers.Source.of(source))
 		page_data["images"] = reader.read_recent_items(GLOBAL_APP_CONTEXT.config.limits.images)
@@ -148,7 +157,7 @@ def page_view(source):
 
 @app.errorhandler(404)
 def page_not_found(e):
-	page_data = get_page_data()
+	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	page_data["error"] = {
 		"code": e.code,
 		"name": e.name,
@@ -213,6 +222,19 @@ def scrap(scrapper_source: scrappers.Source):
 	return scrap_result
 
 
+def load_env_file(file_name: str = None, logger: logging.Logger = None):
+	with open(file_name if file_name is not None else ".env", "rt") as f:
+		lines = [l.strip() for l in f.readlines() if not l.strip().startswith("#") and not len(l.strip()) == 0]
+		env_tuples = tuple(l.split("=", 1) for l in lines)
+		for var_name, var_value in env_tuples:
+			if len(var_value) == 0:
+				logger.info(f"Unsetting environment variable '{var_name}'")
+				os.environ.pop(var_name)
+			else:
+				logger.info(f"Setting environment variable '{var_name}' to '{var_value}'")
+				os.environ[var_name] = var_value
+
+
 if __name__ == "__main__":
 
 	ctx_config = mconfig.Config.from_file(CONFIG_FILE)
@@ -225,6 +247,9 @@ if __name__ == "__main__":
 	ctx_logger = logging.getLogger(ctx_config.logging.name)
 	ctx_logger.info(f"Config '{CONFIG_FILE}' loaded.")
 	ctx_logger.debug(f"{ctx_config=}")
+
+	ctx_logger.info(f"Loading .env file...")
+	load_env_file(logger=ctx_logger)
 
 	if ctx_config.server.port is None:
 		raise ValueError(f"Server port not specified in '{CONFIG_FILE}'")
