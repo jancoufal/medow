@@ -14,11 +14,13 @@ from mtaskstate import TaskState, TaskStateEnum
 class _TaskBase(object):
 	def __init__(self, ctx: AppContext, name: str):
 		self.ctx = ctx
+		self._l = ctx.logger.getChild("task")
 		self.id = self.ctx.get_next_task_id()
 		self.name = name
 		self.start_time = datetime.datetime.now()
 
 	def _update_task(self, title: str, state: TaskStateEnum):
+		self._l.debug(f"Updating task {self.id} to {state}")
 		self.ctx.state.update_task_state(TaskState(
 			self.id,
 			state,
@@ -33,6 +35,9 @@ class _TaskBase(object):
 
 	def on_start(self, description: str):
 		self.start_time = datetime.datetime.now()
+		self._update_task(description, TaskStateEnum.RUNNING)
+
+	def on_progress(self, description: str):
 		self._update_task(description, TaskStateEnum.RUNNING)
 
 	def on_success(self, description: str):
@@ -69,11 +74,23 @@ class _YoutubeLogger(object):
 
 
 class _YoutubeProgressHook(object):
-	def __init__(self, logger: logging.Logger):
-		self._l = logger.getChild("progress_hook")
+	def __init__(self, owning_task: "TaskYoutubeDownload"):
+		self._owning_task = owning_task
+		self._l = self._owning_task.ctx.logger.getChild("progress_hook")
 
-	def __call__(self, *args, **kwargs):
-		self._l.debug(f"Progress hook: {args=} {kwargs=}")
+	def __call__(self, info, *args, **kwargs):
+		try:
+			# status, downloaded_bytes, fragment_index, fragment_count, filename, tmpfilename, elapsed, total_bytes_estimate, speed, eta, _eta_str, _percent_str, _speed_str, _total_bytes_estimate_str
+			self._l.debug(f"Progress hook: {info=}, {args=}, {kwargs=}")
+			self._owning_task.on_progress(
+				f"{info['status'].title()}"
+				f" file: '{info['filename']}'."
+				# f" eta: {info['_eta_str'].strip()},"
+				# f" progress: {info['_percent_str'].strip()},"
+				# f" speed: {info['_speed_str'].strip()}"
+			)
+		except Exception as e:
+			self._l.error(f"Exception {e}.")
 
 
 class TaskYoutubeDownload(_TaskBase):
@@ -83,25 +100,27 @@ class TaskYoutubeDownload(_TaskBase):
 		self.on_new(f"Scrap task for video {self._url}' enqueued.")
 
 	def __call__(self):
-		self.on_start(f"Downloading '{self._url}' is running.""")
+		self.on_start(f"Downloading of '{self._url}' is running.""")
 
 		try:
 			ydl_opts = {
-				"format": "bestaudio/best",
+				"format": "bestvideo",
 				"cachedir": False,
 				"call_home": True,
 				"no_color": True,
 				"download_archive": self.ctx.config.storage.yt_dl,
 				"logger": _YoutubeLogger(self.ctx.logger),
-				"progress_hooks": [_YoutubeProgressHook(self.ctx.logger)]
+				"progress_hooks": [_YoutubeProgressHook(self)]
 			}
 
+			self._l.info(f"Initiating download of '{self._url}'.")
 			with youtube_dl.YoutubeDL(ydl_opts) as ydl:
 				ydl.download([self._url])
 
+			self._l.info(f"Download of '{self._url}' finished successfully.")
 			self.on_success(f"Video '{self._url}' has been downloaded.")
 
-		except youtube_dl.utils.YoutubeDLError as ex:
+		except Exception as ex:
 
 			e = sys.exc_info()
 			exception_info = {
@@ -112,5 +131,5 @@ class TaskYoutubeDownload(_TaskBase):
 				}
 			}
 
+			self._l.error(f"Download of '{self._url}' failed. Exception: {ex}, {exception_info=}.")
 			self.on_failure(f"Video '{self._url}' has *not* been downloaded. Exception: {ex}, {exception_info=}.")
-
