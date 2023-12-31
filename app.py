@@ -24,7 +24,7 @@ GLOBAL_APP_CONTEXT: AppContext
 
 def get_page_data(ctx: AppContext, page_values: dict = None):
 	HTML_ENTITY_SYMBOL_HOME = "&#x2302;"
-	HTML_ENTITY_SYMBOL_STATE = "&#x225f;"  # "&#x22f1;"
+	HTML_ENTITY_SYMBOL_STATE = "&#x22f1;"  # "&#x225f;"
 	HTML_ENTITY_SYMBOL_STATS = "&#x03a3;"  # "&Sigma;"
 	HTML_ENTITY_SYMBOL_RELOAD = "&#x21ca;"
 
@@ -105,7 +105,7 @@ def page_stats():
 	return render_template("stats.html", page_data=page_data)
 
 
-@app.route("/scrap/", methods=["GET"])
+@app.route("/scrap/", methods=["GET", "POST"])
 def page_scrap():
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	try:
@@ -118,16 +118,16 @@ def page_scrap():
 
 		page_data["sources"] = [s for s in scrappers.Source if s is not scrappers.Source.NOOP]
 
-		if request.method == "GET" and "auth-key" in request.args.keys():
-			if GLOBAL_APP_CONTEXT.config.auth.key == request.args.get("auth-key"):
+		if request.method == "POST" and "auth-key" in request.form.keys():
+			if GLOBAL_APP_CONTEXT.config.auth.key == request.form.get("auth-key"):
 
 				for source in scrappers.Source:
-					if request.args.get(f"source-{source.name}") is not None:
+					if request.form.get(f"source-{source.name}") is not None:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for source '{source.name}'.")
 						GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(GLOBAL_APP_CONTEXT, source))
 
-				if request.args.get("url-list") is not None:
-					url_list = [url.strip() for url in request.args.get("url-list").split()]
+				if request.form.get("url-list") is not None:
+					url_list = [url.strip() for url in request.form.get("url-list").split()]
 					for url in url_list:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for url '{url}'.")
 						GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(GLOBAL_APP_CONTEXT, url))
