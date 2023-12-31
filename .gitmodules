@@ -1,3 +1,6 @@
 [submodule "youtube_dl"]
 	path = youtube_dl
 	url = https://github.com/ytdl-org/youtube-dl.git
+[submodule "synology_api"]
+	path = synology_api
+	url = https://github.com/N4S4/synology-api.git
