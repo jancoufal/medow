@@ -3,10 +3,10 @@ import logging
 import sys
 import time
 import traceback
-
-import youtube_dl
+from typing import Dict
 
 import scrappers
+import youtube_dl.youtube_dl as youtube_dl
 from mcontext import AppContext
 from mtaskstate import TaskState, TaskStateEnum
 
@@ -78,16 +78,16 @@ class _YoutubeProgressHook(object):
 		self._owning_task = owning_task
 		self._l = self._owning_task.ctx.logger.getChild("progress_hook")
 
-	def __call__(self, info, *args, **kwargs):
+	def __call__(self, info: Dict[str, str], *args, **kwargs):
 		try:
 			# status, downloaded_bytes, fragment_index, fragment_count, filename, tmpfilename, elapsed, total_bytes_estimate, speed, eta, _eta_str, _percent_str, _speed_str, _total_bytes_estimate_str
 			self._l.debug(f"Progress hook: {info=}, {args=}, {kwargs=}")
 			self._owning_task.on_progress(
-				f"{info['status'].title()}"
-				f" file: '{info['filename']}'."
-				# f" eta: {info['_eta_str'].strip()},"
-				# f" progress: {info['_percent_str'].strip()},"
-				# f" speed: {info['_speed_str'].strip()}"
+				f"{info.get('status', 'Downloading').title()}"
+				f" file: '{info.get('filename', 'n/a')}'."
+				f" eta: {info.get('_eta_str', 'n/a').strip()},"
+				f" progress: {info.get('_percent_str', 'n/a').strip()},"
+				f" speed: {info.get('_speed_str', 'n/a').strip()}"
 			)
 		except Exception as e:
 			self._l.error(f"Exception {e}.")
@@ -104,13 +104,17 @@ class TaskYoutubeDownload(_TaskBase):
 
 		try:
 			ydl_opts = {
-				"format": "bestvideo",
+				# "format": "bestvideo",
 				"cachedir": False,
-				"call_home": True,
+				"call_home": False,
 				"no_color": True,
-				"download_archive": self.ctx.config.storage.yt_dl,
+				"outtmpl": f"{self.ctx.config.storage.yt_dl}/%(title)s-%(id)s.%(ext)s",
 				"logger": _YoutubeLogger(self.ctx.logger),
-				"progress_hooks": [_YoutubeProgressHook(self)]
+				"progress_hooks": [_YoutubeProgressHook(self)],
+				"http_headers": {
+					"User-Agent": "Mozilla/5.0",
+					"Referer": self._url,
+				},
 			}
 
 			self._l.info(f"Initiating download of '{self._url}'.")
