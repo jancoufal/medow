@@ -13,7 +13,7 @@ import mconfig
 import scrappers
 from mcontext import AppContext
 from mstate import WebState
-from mtasks import TaskScrapSource, TaskYoutubeDownload
+from mtasks import TaskDummy, TaskScrapSource, TaskYoutubeDownload
 
 CONFIG_FILE = "config.toml"
 app = Flask(__name__)
@@ -118,26 +118,22 @@ def page_scrap():
 
 		page_data["sources"] = [s for s in scrappers.Source if s is not scrappers.Source.NOOP]
 
-		if request.method == "POST" and "auth-key" in request.form.keys():
-			if GLOBAL_APP_CONTEXT.config.auth.key == request.form.get("auth-key"):
-
+		match request.method, request.form.get("scrap", None):
+			case ("POST", "source"):
 				for source in scrappers.Source:
 					if request.form.get(f"source-{source.name}") is not None:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for source '{source.name}'.")
-						GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(GLOBAL_APP_CONTEXT, source))
+						# GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(GLOBAL_APP_CONTEXT, source))
+						GLOBAL_APP_CONTEXT.task_executor.submit(TaskDummy(GLOBAL_APP_CONTEXT, "source", source.name))
 
+			case ("POST", "yt_dl"):
 				if request.form.get("url-list") is not None:
-					url_list = [url.strip() for url in request.form.get("url-list").split()]
-					for url in url_list:
+					for url in (url.strip() for url in request.form.get("url-list", "").split()):
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for url '{url}'.")
-						GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(GLOBAL_APP_CONTEXT, url))
+						# GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(GLOBAL_APP_CONTEXT, url))
+						GLOBAL_APP_CONTEXT.task_executor.submit(TaskDummy(GLOBAL_APP_CONTEXT, "YT-DL", url))
 
 				# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
-			else:
-				page_data["auth_error"] = {
-					"title": "Authentication error",
-					"message": random.choice(GLOBAL_APP_CONTEXT.config.auth.error_messages),
-				}
 	except:
 		return render_exception_page(page_data=page_data)
 

@@ -30,18 +30,3 @@ site-title = "MeDoW"
 [limits]
   images = 200
   scraps = 1000
-
-[auth]
-  key = "wewewe"
-  error-messages = [
-    "You don't know the auth key. Do not mess with me!",
-    "Stop it! That's not the valid auth key.",
-    "You are wrong. I'm going to tell my dad, sucker.",
-    "Auth key valid... meh, just kiddin'. You don't know it, do you?",
-    "Why are you even trying, when you know that you don't know the auth key?",
-    "Oh gosh, you failed so bad. I won't do anything for you.",
-    "Murder, death, kill. Murder, death, kill! Attention, attention. Calling 911.",
-    "I know what are you trying to do and it doesn't work. You screw it.",
-    "Feeling like a hacker? Try another auth key, but be gentle.",
-    "I feel sorry for you. You've tried some auth key and it does nothing."
- ]

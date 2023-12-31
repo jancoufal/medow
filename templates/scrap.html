@@ -14,10 +14,6 @@
 	<form method="POST">
 		<fieldset>
 			<div class="input-row">
-				<label for="auth-key">Enter auth key:</label>
-				<input type="text" maxlength="16" id="auth-key" name="auth-key" value="{{ page_data.request.args.get('auth-key', '') }}" />
-			</div>
-			<div class="input-row">
 				<span>Scrap:</span>
 				<ul class="sources-list">
 					{%- for source in page_data.sources -%}
@@ -29,14 +25,23 @@
 				</ul>
 			</div>
 			<div class="input-row">
+				<label for="scrap-submit">&#x21CA;</label>
+				<button name="scrap" id="scrap-submit" type="submit" value="source">scrap</button>
+			</div>
+		</fieldset>
+	</form>
+</div>
+
+<div class="form-container">
+	<form method="POST">
+		<fieldset>
+			<div class="input-row">
 				<label for="url-list">YouTube-DL:</label>
-				<textarea id="url-list" name="url-list" cols="80" rows="10">https://www.youtube.com/watch?v=MV_3Dpw-BRY
-					{{ page_data.request.args.get('url-list', '') }}
-				</textarea>
+				<textarea id="url-list" name="url-list" cols="80" rows="10">https://www.youtube.com/watch?v=MV_3Dpw-BRY{{ page_data.request.args.get('url-list', '') }}</textarea>
 			</div>
 			<div class="input-row">
-				<label for="scrap-submit">&#x21CA;</label>
-				<button id="scrap-submit" type="submit" value="auth">auth & scrap</button>
+				<label for="download-submit">&#x21CA;</label>
+				<button name="scrap" id="download-submit" type="submit" value="yt_dl">download</button>
 			</div>
 		</fieldset>
 	</form>

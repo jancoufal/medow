@@ -41,12 +41,6 @@ class ConfigLimits:
 
 
 @dataclass
-class ConfigAuth:
-	key: str
-	error_messages: List[str]
-
-
-@dataclass
 class Config:
 	debug: bool
 	site_title: str
@@ -54,7 +48,6 @@ class Config:
 	worker_thread: ConfigWorkerThread
 	server: ConfigServer
 	limits: ConfigLimits
-	auth: ConfigAuth
 	persistence: ConfigPersistence
 	storage: ConfigStorage
 

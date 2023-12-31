@@ -47,6 +47,19 @@ class _TaskBase(object):
 		self._update_task(description, TaskStateEnum.FAILED)
 
 
+class TaskDummy(_TaskBase):
+	def __init__(self, ctx: AppContext, name: str, description: str):
+		super().__init__(ctx, name)
+		self._description = description
+
+	def __call__(self):
+		self.on_start(f"Dummy task #{self.id} ({self._description}) started.")
+		for p in range(10):
+			time.sleep(1)
+			self.on_progress(f"Dummy task #{self.id} ({self._description}) running - {p*10}% done.")
+		self.on_success(f"Dummy task #{self.id} ({self._description}) finished.")
+
+
 class TaskScrapSource(_TaskBase):
 	def __init__(self, ctx: AppContext, source: scrappers.Source):
 		super().__init__(ctx, source.name)
@@ -104,7 +117,7 @@ class TaskYoutubeDownload(_TaskBase):
 
 		try:
 			ydl_opts = {
-				# "format": "bestvideo",
+				"format": "bestvideo",
 				"cachedir": False,
 				"call_home": False,
 				"no_color": True,
