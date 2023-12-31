@@ -26,7 +26,7 @@
 			</div>
 			<div class="input-row">
 				<label for="scrap-submit">&#x21CA;</label>
-				<button name="scrap" id="scrap-submit" type="submit" value="source">scrap</button>
+				<button name="form" id="scrap-submit" type="submit" value="scrap">scrap</button>
 			</div>
 		</fieldset>
 	</form>
@@ -41,11 +41,24 @@
 			</div>
 			<div class="input-row">
 				<label for="download-submit">&#x21CA;</label>
-				<button name="scrap" id="download-submit" type="submit" value="yt_dl">download</button>
+				<button name="form" id="download-submit" type="submit" value="yt_dl">download</button>
 			</div>
 		</fieldset>
 	</form>
 </div>
+
+<div class="form-container">
+	<div class="input-row">
+		<form method="POST">
+			<fieldset>
+				<label for="nas-submit">NAS</label>
+				<button name="form" id="nas-submit" type="submit" value="nas">Wake-up NAS</button>
+			</fieldset>
+		</form>
+	</div>
+</div>
+
+
 
 {% if page_data.scrapper_results %}
 <dl class="scrap-results">

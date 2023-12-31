@@ -118,8 +118,8 @@ def page_scrap():
 
 		page_data["sources"] = [s for s in scrappers.Source if s is not scrappers.Source.NOOP]
 
-		match request.method, request.form.get("scrap", None):
-			case ("POST", "source"):
+		match request.method, request.form.get("form", None):
+			case ("POST", "scrap"):
 				for source in scrappers.Source:
 					if request.form.get(f"source-{source.name}") is not None:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for source '{source.name}'.")
@@ -133,7 +133,11 @@ def page_scrap():
 						# GLOBAL_APP_CONTEXT.task_executor.submit(TaskYoutubeDownload(GLOBAL_APP_CONTEXT, url))
 						GLOBAL_APP_CONTEXT.task_executor.submit(TaskDummy(GLOBAL_APP_CONTEXT, "YT-DL", url))
 
-				# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
+			case ("POST", "nas"):
+				GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing 'Wake-up NAS' task.")
+				GLOBAL_APP_CONTEXT.task_executor.submit(TaskDummy(GLOBAL_APP_CONTEXT, "NAS", "Wake-up"))
+
+		# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
 	except:
 		return render_exception_page(page_data=page_data)
 
