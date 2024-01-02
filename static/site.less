@@ -245,6 +245,21 @@ body {
 				&.failed tr th { background-color: darkred; }
 
 				tr {
+					&.state-queued {
+						background-color: darken(@line-color, 40%);
+					}
+					&.state-running {
+						color: lighten(@link-color-selected, 30%);
+						background-color: darken(@link-color-selected, 35%);
+					}
+					&.state-finished {
+						background-color: darken(@link-color-selected, 60%);
+					}
+					&.state-failed {
+						color: lighten(@error-box-bg-color, 60%);
+						background-color: darken(@error-box-bg-color, 40%);
+					}
+
 					&:hover {
 						background-color: darken(@link-color-active, 40%);
 					}

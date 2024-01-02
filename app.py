@@ -223,6 +223,8 @@ def scrap(scrapper_source: scrappers.Source):
 
 
 def load_env_file(file_name: str = None, logger: logging.Logger = None):
+	if logger is None:
+		logger = logging.getLogger("env_loader")
 	with open(file_name if file_name is not None else ".env", "rt") as f:
 		lines = [l.strip() for l in f.readlines() if not l.strip().startswith("#") and not len(l.strip()) == 0]
 		env_tuples = tuple(l.split("=", 1) for l in lines)

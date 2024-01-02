@@ -94,7 +94,7 @@ class _YoutubeProgressHook(object):
 	def __call__(self, info: Dict[str, str], *args, **kwargs):
 		try:
 			# status, downloaded_bytes, fragment_index, fragment_count, filename, tmpfilename, elapsed, total_bytes_estimate, speed, eta, _eta_str, _percent_str, _speed_str, _total_bytes_estimate_str
-			self._l.debug(f"Progress hook: {info=}, {args=}, {kwargs=}")
+			# self._l.debug(f"Progress hook: {info=}, {args=}, {kwargs=}")
 			self._owning_task.on_progress(
 				f"{info.get('status', 'Downloading').title()}"
 				f" file: '{info.get('filename', 'n/a')}'."
@@ -117,7 +117,7 @@ class TaskYoutubeDownload(_TaskBase):
 
 		try:
 			ydl_opts = {
-				"format": "bestvideo",
+				# "format": "bestvideo",
 				"cachedir": False,
 				"call_home": False,
 				"no_color": True,
