@@ -1,8 +1,6 @@
-import sys, traceback
-from enum import Enum, auto
-import typing
-import pathlib
 import datetime
+from enum import Enum, auto
+
 from .sources import Source
 from .util.exception_info import ExceptionInfo
 from .util.formatters import percentage_str
@@ -49,13 +47,13 @@ class ResultItemFailedInfo(object):
 
 class ResultItem(object):
 	@classmethod
-	def createSucceeded(cls, relative_file_path: str, remote_file_url: str):
+	def create_succeeded(cls, relative_file_path: str, remote_file_url: str):
 		item_info = ResultItemSuccessInfo(relative_file_path, remote_file_url)
 		return cls(ResultItemStatus.SUCCEEDED, item_info, None)
 
 	@classmethod
-	def createFailed(cls, item_to_download: str, exception_info:ExceptionInfo=None):
-		e_info = exception_info if exception_info is not None else ExceptionInfo.createFromLastException()
+	def create_failed(cls, item_to_download: str, exception_info: ExceptionInfo = None):
+		e_info = exception_info if exception_info is not None else ExceptionInfo.create_from_last_exception()
 		item_info = ResultItemFailedInfo(item_to_download, e_info)
 		return cls(ResultItemStatus.FAILED, None, item_info)
 
@@ -81,7 +79,7 @@ class ResultItem(object):
 
 
 class Result(object):
-	def __init__(self, source: Source, ts_start: datetime.datetime=None):
+	def __init__(self, source: Source, ts_start: datetime.datetime = None):
 		self._source = source
 		self._ts_start = ts_start if ts_start is not None else datetime.datetime.now()
 		self._time_taken = "unknown"

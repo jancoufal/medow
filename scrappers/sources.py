@@ -1,5 +1,6 @@
 import enum
 
+
 class Source(enum.Enum):
 	NOOP = "noop"
 	ROUMEN = "roumen"

@@ -134,8 +134,8 @@ class DbScrapWriter(object):
 		ts_now = datetime.datetime.now()
 		self._db.write(_Tables.SCRAP_STAT.value, {
 			"source": self._source,
-			"ts_start_date": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATE, ts_now),
-			"ts_start_time": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.TIME_MS, ts_now),
+			"ts_start_date": formatters.ts_to_str(formatters.TimestampFormat.DATE, ts_now),
+			"ts_start_time": formatters.ts_to_str(formatters.TimestampFormat.TIME_MS, ts_now),
 			"status": _ScrapState.IN_PROGRESS.value,
 		})
 		return self._db.read_last_seq(_Tables.SCRAP_STAT.value)
@@ -145,9 +145,9 @@ class DbScrapWriter(object):
 		ts_now = datetime.datetime.now()
 		self._db.write(_Tables.SCRAP_ITEMS.value, {
 			"scrap_stat_id": self._scrap_stat_id,
-			"ts_date": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATE, ts_now),
-			"ts_week": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.WEEK, ts_now),
-			"ts_time": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.TIME_MS, ts_now),
+			"ts_date": formatters.ts_to_str(formatters.TimestampFormat.DATE, ts_now),
+			"ts_week": formatters.ts_to_str(formatters.TimestampFormat.WEEK, ts_now),
+			"ts_time": formatters.ts_to_str(formatters.TimestampFormat.TIME_MS, ts_now),
 			"local_path": str(local_path).replace("\\", "/"),
 			"name": item_name,
 			"impressions": 0,
@@ -158,8 +158,8 @@ class DbScrapWriter(object):
 		ts_now = datetime.datetime.now()
 		self._db.write(_Tables.SCRAP_FAILS.value, {
 			"scrap_stat_id": self._scrap_stat_id,
-			"ts_date": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATE, ts_now),
-			"ts_time": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.TIME_MS, ts_now),
+			"ts_date": formatters.ts_to_str(formatters.TimestampFormat.DATE, ts_now),
+			"ts_time": formatters.ts_to_str(formatters.TimestampFormat.TIME_MS, ts_now),
 			"item_name": item_name,
 			"description": description,
 			"exc_type": str(exception_info.exception_type),
@@ -170,8 +170,8 @@ class DbScrapWriter(object):
 	def finish(self):
 		ts_now = datetime.datetime.now()
 		self._db.update(_Tables.SCRAP_STAT.value, {
-			"ts_end_date": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATE, ts_now),
-			"ts_end_time": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.TIME_MS, ts_now),
+			"ts_end_date": formatters.ts_to_str(formatters.TimestampFormat.DATE, ts_now),
+			"ts_end_time": formatters.ts_to_str(formatters.TimestampFormat.TIME_MS, ts_now),
 			"status": _ScrapState.COMPLETE.value,
 			"succ_count": self._item_succ_count,
 			"fail_count": self._item_fail_count,
@@ -182,8 +182,8 @@ class DbScrapWriter(object):
 	def finish_exceptionaly(self, exception_info:exception_info.ExceptionInfo):
 		ts_now = datetime.datetime.now()
 		self._db.update(_Tables.SCRAP_STAT.value, {
-			"ts_end_date": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATE, ts_now),
-			"ts_end_time": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.TIME_MS, ts_now),
+			"ts_end_date": formatters.ts_to_str(formatters.TimestampFormat.DATE, ts_now),
+			"ts_end_time": formatters.ts_to_str(formatters.TimestampFormat.TIME_MS, ts_now),
 			"status": _ScrapState.FAILED.value,
 			"succ_count": self._item_succ_count,
 			"fail_count": self._item_fail_count,
@@ -206,9 +206,9 @@ class DbScrapReader(object):
 
 	def read_recent_items(self, item_limit: int):
 		def _row_mapper(r):
-			scrap_ts = formatters.str_to_ts(formatters.TIMESTAMP_FORMAT.DATETIME_MS, f"{r[0]} {r[1]}")
+			scrap_ts = formatters.str_to_ts(formatters.TimestampFormat.DATETIME_MS, f"{r[0]} {r[1]}")
 			return {
-				"datetime": formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATETIME, scrap_ts),
+				"datetime": formatters.ts_to_str(formatters.TimestampFormat.DATETIME, scrap_ts),
 				"age": formatters.ts_diff_to_str(scrap_ts, datetime.datetime.now(), False),
 				"name": r[2],
 				"local_path": r[3],
@@ -258,7 +258,7 @@ class DbStatReader(object):
 	def read_last_scraps(self, record_limit:int):
 		def _to_ts_safe(date_string, time_string):
 			try:
-				return formatters.str_to_ts(formatters.TIMESTAMP_FORMAT.DATETIME_MS, f"{date_string} {time_string}")
+				return formatters.str_to_ts(formatters.TimestampFormat.DATETIME_MS, f"{date_string} {time_string}")
 			except:
 				return None
 
@@ -275,8 +275,8 @@ class DbStatReader(object):
 				"scrap_id": row[0],
 				"source": row[1],
 				"status": row[2],
-				"ts_start": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATETIME, scrap_s),
-				"ts_end": formatters.NOT_AVAILABLE_STR if scrap_e is None else formatters.ts_to_str(formatters.TIMESTAMP_FORMAT.DATETIME, scrap_e),
+				"ts_start": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_to_str(formatters.TimestampFormat.DATETIME, scrap_s),
+				"ts_end": formatters.NOT_AVAILABLE_STR if scrap_e is None else formatters.ts_to_str(formatters.TimestampFormat.DATETIME, scrap_e),
 				"age": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_diff_to_str(scrap_s, datetime.datetime.now(), False),
 				"time_taken": formatters.NOT_AVAILABLE_STR if None in (scrap_s, scrap_e) else formatters.ts_diff_to_str(scrap_s, scrap_e, False),
 				"count_succ": row[7],

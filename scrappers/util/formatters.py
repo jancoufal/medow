@@ -4,7 +4,8 @@ import datetime
 
 NOT_AVAILABLE_STR = "n/a"
 
-class TIMESTAMP_FORMAT(Enum):
+
+class TimestampFormat(Enum):
 	DATE = "%Y-%m-%d"
 	WEEK = "%Y-%V"
 	TIME = "%H:%M.%S"
@@ -12,15 +13,19 @@ class TIMESTAMP_FORMAT(Enum):
 	DATETIME = "%Y-%m-%d %H:%M.%S"
 	DATETIME_MS = "%Y-%m-%d %H:%M.%S,%f"
 
-def ts_to_str(format:TIMESTAMP_FORMAT, ts:datetime.datetime.timestamp=None):
-	_ts = ts if ts is not None else datetime.datetime.now()
-	return _ts.strftime(format.value)
 
-def str_to_ts(format:TIMESTAMP_FORMAT, ts_string:str):
-	return datetime.datetime.strptime(ts_string, format.value)
+def ts_to_str(fmt: TimestampFormat, ts: datetime.datetime.timestamp = None):
+	_ts = ts if ts is not None else datetime.datetime.now()
+	return _ts.strftime(fmt.value)
+
+
+def str_to_ts(fmt: TimestampFormat, ts_string: str):
+	return datetime.datetime.strptime(ts_string, fmt.value)
+
 
 def ts_diff_to_str(ts_start:datetime.datetime, ts_end:datetime.datetime, include_ms):
 	return td_format((ts_start - ts_end) if ts_start > ts_end else (ts_end - ts_start), include_ms)
+
 
 def td_format(td:datetime.timedelta, include_ms):
 	s = [f"{td.microseconds // 1000}ms"] if include_ms else []
@@ -38,8 +43,8 @@ def percentage_str(count:int, total:int):
 
 if __name__ == "__main__":
 	ts = datetime.datetime.now()
-	for fmt in TIMESTAMP_FORMAT:
-		if fmt == TIMESTAMP_FORMAT.WEEK:
+	for fmt in TimestampFormat:
+		if fmt == TimestampFormat.WEEK:
 			s = ts_to_str(fmt)
 			print(f"{fmt.name}: {s}")
 		else:

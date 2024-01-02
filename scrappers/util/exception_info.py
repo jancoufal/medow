@@ -3,7 +3,7 @@ import sys, traceback
 
 class ExceptionInfo(object):
 	@classmethod
-	def createFromLastException(cls):
+	def create_from_last_exception(cls):
 		return cls(*sys.exc_info())
 
 	def __init__(self, exception_type, value, traceback):

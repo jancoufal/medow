@@ -1,5 +1,6 @@
 import sqlite3
 
+
 def install(sql_connection: sqlite3.Connection):
 	c = sql_connection.cursor()
 	c.execute("""

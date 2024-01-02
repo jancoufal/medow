@@ -46,18 +46,18 @@ class BaseRoumen(object):
 					# r = requests.get(remote_file_url, headers=Roumen.REQUEST_HEADERS)
 					urllib.request.urlretrieve(remote_file_url, filename=str(destination_path / image_to_download))
 
-					result.on_item(ResultItem.createSucceeded(relative_file_path, remote_file_url))
+					result.on_item(ResultItem.create_succeeded(relative_file_path, remote_file_url))
 					scrap_writer.on_scrap_item_success(relative_file_path, image_to_download)
 
 				except:
-					e_info = ExceptionInfo.createFromLastException()
-					result.on_item(ResultItem.createFailed(image_to_download, e_info))
+					e_info = ExceptionInfo.create_from_last_exception()
+					result.on_item(ResultItem.create_failed(image_to_download, e_info))
 					scrap_writer.on_scrap_item_failure(item_name=image_to_download, description="scrap failure", exception_info=e_info)
 
 			scrap_writer.finish()
 
 		except:
-			e_info = ExceptionInfo.createFromLastException()
+			e_info = ExceptionInfo.create_from_last_exception()
 			result.on_scrapping_exception(e_info)
 			scrap_writer.finish_exceptionaly(e_info)
 

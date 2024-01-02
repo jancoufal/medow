@@ -1,6 +1,7 @@
-from ..sources import Source
-from ..settings import Settings
 from ..result import Result
+from ..settings import Settings
+from ..sources import Source
+
 
 class Noop(object):
 	def __init__(self, settings: Settings):

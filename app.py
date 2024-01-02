@@ -184,7 +184,7 @@ def fake_scrap(scrapper_source: scrappers.Source):
 	r = scrappers.result.Result(scrapper_source)
 
 	for i in range(5):
-		r.on_item(scrappers.result.ResultItem.createSucceeded(
+		r.on_item(scrappers.result.ResultItem.create_succeeded(
 			f"relative_path_{i}",
 			f"remote_url_{i}"
 			))
@@ -193,13 +193,13 @@ def fake_scrap(scrapper_source: scrappers.Source):
 		try:
 			raise KeyError("test item exception")
 		except:
-			r.on_item(scrappers.result.ResultItem.createFailed(f"image_name_{i}"))
+			r.on_item(scrappers.result.ResultItem.create_failed(f"image_name_{i}"))
 
 	if scrapper_source == scrappers.Source.ROUMEN_MASO:
 		try:
 			raise KeyError("test scrapper exception")
 		except:
-			r.on_scrapping_exception(scrappers.result.ExceptionInfo.createFromLastException())
+			r.on_scrapping_exception(scrappers.result.ExceptionInfo.create_from_last_exception())
 
 	r.on_scrapping_finished()
 
