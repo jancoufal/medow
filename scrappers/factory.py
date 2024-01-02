@@ -1,6 +1,6 @@
 from .impl import Noop, Roumen, RoumenMaso
 from .settings import Settings
-from .sources import Source
+from msource.sources import Source
 
 
 def create(source: Source, settings: Settings):

@@ -1,7 +1,6 @@
 import concurrent.futures
 import logging
 import os
-import random
 import sys
 import traceback
 import socket
@@ -11,6 +10,8 @@ from flask import Flask, url_for, render_template, request
 
 import mconfig
 import scrappers
+from msource import sources
+from mdao.mscrapper import DbStatReader, DbScrapReader
 from mcontext import AppContext
 from mstate import WebState
 from mtasks import TaskDummy, TaskScrapSource, TaskYoutubeDownload
@@ -65,9 +66,9 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 		},
 	}
 
-	for s in scrappers.Source:
-		if s is not scrappers.Source.NOOP:
-			page_data["navigation"].append({"name":s.value, "href":url_for("page_view", source=s.value)})
+	for s in sources.Source:
+		if s is not sources.Source.NOOP:
+			page_data["navigation"].append({"name": s.value, "href": url_for("page_view", source=s.value)})
 
 	return page_data
 
@@ -97,7 +98,7 @@ def page_state():
 @app.route("/stats/")
 def page_stats():
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
-	reader = scrappers.DbStatReader.create(GLOBAL_APP_CONTEXT.config.persistence.sqlite_datafile)
+	reader = DbStatReader.create(GLOBAL_APP_CONTEXT.config.persistence.sqlite_datafile)
 	page_data["stats"] = {
 		"last_scraps": reader.read_last_scraps(GLOBAL_APP_CONTEXT.config.limits.scraps),
 	}
@@ -116,11 +117,11 @@ def page_scrap():
 			"form": request.form,
 		}
 
-		page_data["sources"] = [s for s in scrappers.Source if s is not scrappers.Source.NOOP]
+		page_data["sources"] = [s for s in sources.Source if s is not sources.Source.NOOP]
 
 		match request.method, request.form.get("form", None):
 			case ("POST", "scrap"):
-				for source in scrappers.Source:
+				for source in sources.Source:
 					if request.form.get(f"source-{source.name}") is not None:
 						GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing task for source '{source.name}'.")
 						# GLOBAL_APP_CONTEXT.task_executor.submit(TaskScrapSource(GLOBAL_APP_CONTEXT, source))
@@ -148,7 +149,7 @@ def page_scrap():
 def page_view(source):
 	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"source": source})
 	try:
-		reader = scrappers.DbScrapReader.create(GLOBAL_APP_CONTEXT.config.persistence.sqlite_datafile, scrappers.Source.of(source))
+		reader = DbScrapReader.create(GLOBAL_APP_CONTEXT.config.persistence.sqlite_datafile, sources.Source.of(source))
 		page_data["images"] = reader.read_recent_items(GLOBAL_APP_CONTEXT.config.limits.images)
 		return render_template("view.html", page_data=page_data)
 	except:
@@ -167,7 +168,7 @@ def page_not_found(e):
 	return render_template('error.html', page_data=page_data), 404
 
 
-def render_exception_page(page_data:dict, exc_info=None):
+def render_exception_page(page_data: dict, exc_info=None):
 	e = exc_info if exc_info is not None else sys.exc_info()
 	exception_info = {
 		"exception": {
@@ -180,7 +181,7 @@ def render_exception_page(page_data:dict, exc_info=None):
 	return render_template("exception.html", page_data={**page_data, **exception_info})
 
 
-def fake_scrap(scrapper_source: scrappers.Source):
+def fake_scrap(scrapper_source: sources.Source):
 	r = scrappers.result.Result(scrapper_source)
 
 	for i in range(5):
@@ -195,7 +196,7 @@ def fake_scrap(scrapper_source: scrappers.Source):
 		except:
 			r.on_item(scrappers.result.ResultItem.create_failed(f"image_name_{i}"))
 
-	if scrapper_source == scrappers.Source.ROUMEN_MASO:
+	if scrapper_source == sources.Source.ROUMEN_MASO:
 		try:
 			raise KeyError("test scrapper exception")
 		except:
@@ -206,7 +207,7 @@ def fake_scrap(scrapper_source: scrappers.Source):
 	return r
 
 
-def scrap(scrapper_source: scrappers.Source):
+def scrap(scrapper_source: sources.Source):
 	scrapper_settings = scrappers.Settings(
 		local_base_path=Path.cwd(),
 		local_relative_path=Path("static").joinpath("images"),
@@ -225,6 +226,7 @@ def scrap(scrapper_source: scrappers.Source):
 def load_env_file(file_name: str = None, logger: logging.Logger = None):
 	if logger is None:
 		logger = logging.getLogger("env_loader")
+
 	with open(file_name if file_name is not None else ".env", "rt") as f:
 		lines = [l.strip() for l in f.readlines() if not l.strip().startswith("#") and not len(l.strip()) == 0]
 		env_tuples = tuple(l.split("=", 1) for l in lines)

@@ -1,6 +1,6 @@
+from msource.sources import Source
 from ..result import Result
 from ..settings import Settings
-from ..sources import Source
 
 
 class Noop(object):

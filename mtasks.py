@@ -9,6 +9,8 @@ import scrappers
 import youtube_dl.youtube_dl as youtube_dl
 from mcontext import AppContext
 from mtaskstate import TaskState, TaskStateEnum
+from msource import sources
+from mutil import formatters
 
 
 class _TaskBase(object):
@@ -27,7 +29,7 @@ class _TaskBase(object):
 			self.name,
 			title,
 			self.start_time,
-			scrappers.util.formatters.ts_diff_to_str(self.start_time, datetime.datetime.now(), include_ms=False)
+			formatters.ts_diff_to_str(self.start_time, datetime.datetime.now(), include_ms=False)
 		))
 
 	def on_new(self, description: str):
@@ -61,7 +63,7 @@ class TaskDummy(_TaskBase):
 
 
 class TaskScrapSource(_TaskBase):
-	def __init__(self, ctx: AppContext, source: scrappers.Source):
+	def __init__(self, ctx: AppContext, source: sources.Source):
 		super().__init__(ctx, source.name)
 		self._source = source
 		self.on_new(f"Scrap task for '{self._source.value}' enqueued.")

@@ -1,129 +1,77 @@
-import typing
-import sqlite3
 import datetime
-import enum
-import pathlib
-from ..util import exception_info, formatters
-from ..sources import Source
+import sqlite3
+from enum import Enum
+from pathlib import Path
+from msource.sources import Source
+from persistence.msqlite_api import SqliteApi
+from mutil import formatters, exception_info
 
 
-class _Tables(enum.Enum):
+class _Tables(Enum):
 	SCRAP_STAT = "scrap_stat"
 	SCRAP_FAILS = "scrap_fails"
 	SCRAP_ITEMS = "scrap_items"
 
 
-class _ScrapState(enum.Enum):
+class _ScrapState(Enum):
 	IN_PROGRESS = "in_progress"
 	COMPLETE = "complete"
 	FAILED = "failed"
 
 
-class _SqliteApi(object):
-
-	SELECT_LIMIT_MIN = 1
-	SELECT_LIMIT_MAX = 300
-	SELECT_LIMIT_FALLBACK = 10
-
-	def __init__(self, sqlite_datafile:pathlib.Path):
-		self.sqlite_datafile = sqlite_datafile
-
+class Installer(object):
 	@staticmethod
-	def clamp_limit(limit_value:int):
-		if not isinstance(limit_value, int):
-			return _SqliteApi.SELECT_LIMIT_FALLBACK
-		
-		if limit_value < _SqliteApi.SELECT_LIMIT_MIN:
-			return _SqliteApi.SELECT_LIMIT_MIN
+	def install(sql_connection: sqlite3.Connection):
+		c = sql_connection.cursor()
+		c.execute("""
+			create table if not exists scrap_stat (
+				scrap_stat_id integer primary key autoincrement,
+				source text,
+				ts_start_date text,
+				ts_start_time text,
+				ts_end_date text,
+				ts_end_time text,
+				status text,
+				succ_count integer,
+				fail_count integer
+			);""")
 
-		if limit_value > _SqliteApi.SELECT_LIMIT_MAX:
-			return _SqliteApi.SELECT_LIMIT_MAX
+		c.execute("""
+			create table if not exists scrap_fails (
+				scrap_fail_id integer primary key autoincrement,
+				scrap_stat_id integer,
+				ts_date text,
+				ts_time text,
+				item_name text,
+				description text,
+				exc_type text,
+				exc_value text,
+				exc_traceback text,
+				foreign key(scrap_stat_id) references scrap_stat(scrap_stat_id)
+			);	""")
 
-		return limit_value
+		c.execute("""
+			create table if not exists scrap_items(
+				scrap_item_id integer primary key autoincrement,
+				scrap_stat_id integer,
+				ts_date text,
+				ts_week text,
+				ts_time text,
+				local_path text,
+				name text,
+				impressions integer,
+				foreign key(scrap_stat_id) references scrap_stat(scrap_stat_id)
+			);	""")
 
-	def do_with_connection(self, connection_cb:callable):
-		db_conn = sqlite3.Connection(self.sqlite_datafile)
-		try:
-			with db_conn:
-				return connection_cb(db_conn)
-		finally:
-			db_conn.close()
-
-	def do_with_cursor(self, cursor_cb:callable):
-		def _cursor_call(connection):
-			db_cursor = connection.cursor()
-			try:
-				cb_result = cursor_cb(db_cursor)
-				connection.commit()
-				return cb_result
-			finally:
-				db_cursor.close()
-
-		return self.do_with_connection(_cursor_call)
-
-	def read(self, sql_stmt:str, binds, row_mapper:callable=None):
-		def _reader(cursor):
-			r_mapper = row_mapper if row_mapper is not None else lambda row: row
-			result = list()
-			for r in cursor.execute(sql_stmt, binds):
-				result.append(r_mapper(r))
-			return result
-
-		return self.do_with_cursor(_reader)
-
-	def compose_and_read(self, source_table:str, joins: str, column_list:list, filter_map:dict, order_tuple_list:tuple, limit:int, row_mapper:callable=None):
-		stmt = f"select {', '.join(column_list)} from {source_table}"
-
-		if joins is not None:
-			stmt += " " + joins
-
-		if filter_map is not None and len(filter_map) > 0:
-			stmt += " where " + " and ".join(f"{k}=:{k}" for k in filter_map.keys())
-
-		if order_tuple_list is not None and len(order_tuple_list) > 0:
-			stmt += " order by " + ", ".join(f"{_1} {_2}" for (_1, _2) in order_tuple_list)
-
-		stmt += " limit " + str(_SqliteApi.clamp_limit(limit))
-
-		return self.read(stmt, filter_map)
-
-	def write(self, table_name, value_mapping:dict):
-		def _writer(connection):
-			cols = list(value_mapping.keys())
-			sql_stmt = f"insert into {table_name}({', '.join(cols)}) values (:{', :'.join(cols)})"
-			connection.execute(sql_stmt, value_mapping)
-
-		return self.do_with_connection(_writer)
-
-	def update(self, table_name, value_mapping:dict, where_condition_mapping:dict):
-		def _writer(connection):
-			# rename all value_mapping keys to "new_{key}" and where_condition_mapping keys to "where_{key}"
-			# statement pattern:
-			# update table_name set col_a=:new_col_a, col_b=:new_col_b where col_c=:where_col_c and col_d=:where_col_d
-			stmt_set = ", ".join(map(lambda k: f"{k}=:new_{k}", value_mapping.keys()))
-			stmt_whr = " and ".join(map(lambda k: f"{k}=:where_{k}", where_condition_mapping.keys()))
-			sql_stmt = f"update {table_name} set {stmt_set} where {stmt_whr}"
-			connection.execute(sql_stmt, {
-				**{ f"new_{k}": v for (k, v) in value_mapping.items() },
-				**{ f"where_{k}": v for (k, v) in where_condition_mapping.items() }
-			})
-
-		return self.do_with_connection(_writer)
-
-	def read_last_seq(self, table_name):
-		def _reader(cursor):
-			cursor.execute("select seq from sqlite_sequence where name=?", (table_name, ))
-			return cursor.fetchone()[0]
-
-		return self.do_with_cursor(_reader)
+		c.close()
 
 
 class DbScrapWriter(object):
 	@classmethod
-	def create(cls, sqlite_datafile:pathlib.Path, source:Source):
-		return cls(_SqliteApi(sqlite_datafile), source.value)
+	def create(cls, sqlite_datafile: Path, source: Source):
+		return cls(SqliteApi(sqlite_datafile), source.value)
 
-	def __init__(self, db_api:_SqliteApi, source:str):
+	def __init__(self, db_api: SqliteApi, source: str):
 		self._db = db_api
 		self._source = source
 		self._scrap_stat_id = self._initialize_record()
@@ -140,7 +88,7 @@ class DbScrapWriter(object):
 		})
 		return self._db.read_last_seq(_Tables.SCRAP_STAT.value)
 
-	def on_scrap_item_success(self, local_path:pathlib.Path, item_name:str):
+	def on_scrap_item_success(self, local_path: Path, item_name: str):
 		self._item_succ_count += 1
 		ts_now = datetime.datetime.now()
 		self._db.write(_Tables.SCRAP_ITEMS.value, {
@@ -153,7 +101,7 @@ class DbScrapWriter(object):
 			"impressions": 0,
 		})
 
-	def on_scrap_item_failure(self, item_name:str, description:str, exception_info:exception_info.ExceptionInfo):
+	def on_scrap_item_failure(self, item_name: str, description: str, exception_info: exception_info.ExceptionInfo):
 		self._item_fail_count += 1
 		ts_now = datetime.datetime.now()
 		self._db.write(_Tables.SCRAP_FAILS.value, {
@@ -176,10 +124,10 @@ class DbScrapWriter(object):
 			"succ_count": self._item_succ_count,
 			"fail_count": self._item_fail_count,
 		}, {
-			"scrap_stat_id": self._scrap_stat_id,
-		})
+							"scrap_stat_id": self._scrap_stat_id,
+						})
 
-	def finish_exceptionaly(self, exception_info:exception_info.ExceptionInfo):
+	def finish_exceptionally(self, exception_info: exception_info.ExceptionInfo):
 		ts_now = datetime.datetime.now()
 		self._db.update(_Tables.SCRAP_STAT.value, {
 			"ts_end_date": formatters.ts_to_str(formatters.TimestampFormat.DATE, ts_now),
@@ -191,16 +139,16 @@ class DbScrapWriter(object):
 			"exc_value": str(exception_info.value),
 			"exc_traceback": str(exception_info.formatted_exception),
 		}, {
-			"scrap_stat_id": self._scrap_stat_id,
-		})
+							"scrap_stat_id": self._scrap_stat_id,
+						})
 
 
 class DbScrapReader(object):
 	@classmethod
-	def create(cls, sqlite_datafile:pathlib.Path, source:Source):
-		return cls(_SqliteApi(sqlite_datafile), source.value)
+	def create(cls, sqlite_datafile: Path, source: Source):
+		return cls(SqliteApi(sqlite_datafile), source.value)
 
-	def __init__(self, db_api:_SqliteApi, source:str):
+	def __init__(self, db_api: SqliteApi, source: str):
 		self._db = db_api
 		self._source = source
 
@@ -226,7 +174,7 @@ class DbScrapReader(object):
 
 		binds = {
 			"source": self._source,
-			"limit": _SqliteApi.clamp_limit(item_limit)
+			"limit": SqliteApi.clamp_limit(item_limit)
 		}
 
 		return self._db.read(stmt, binds, _row_mapper)
@@ -249,13 +197,13 @@ class DbScrapReader(object):
 
 class DbStatReader(object):
 	@classmethod
-	def create(cls, sqlite_datafile:pathlib.Path):
-		return cls(_SqliteApi(sqlite_datafile))
+	def create(cls, sqlite_datafile: Path):
+		return cls(SqliteApi(sqlite_datafile))
 
-	def __init__(self, db_api:_SqliteApi):
+	def __init__(self, db_api: SqliteApi):
 		self._db = db_api
 
-	def read_last_scraps(self, record_limit:int):
+	def read_last_scraps(self, record_limit: int):
 		def _to_ts_safe(date_string, time_string):
 			try:
 				return formatters.str_to_ts(formatters.TimestampFormat.DATETIME_MS, f"{date_string} {time_string}")
@@ -275,10 +223,16 @@ class DbStatReader(object):
 				"scrap_id": row[0],
 				"source": row[1],
 				"status": row[2],
-				"ts_start": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_to_str(formatters.TimestampFormat.DATETIME, scrap_s),
-				"ts_end": formatters.NOT_AVAILABLE_STR if scrap_e is None else formatters.ts_to_str(formatters.TimestampFormat.DATETIME, scrap_e),
-				"age": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_diff_to_str(scrap_s, datetime.datetime.now(), False),
-				"time_taken": formatters.NOT_AVAILABLE_STR if None in (scrap_s, scrap_e) else formatters.ts_diff_to_str(scrap_s, scrap_e, False),
+				"ts_start": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_to_str(
+					formatters.TimestampFormat.DATETIME, scrap_s),
+				"ts_end": formatters.NOT_AVAILABLE_STR if scrap_e is None else formatters.ts_to_str(
+					formatters.TimestampFormat.DATETIME, scrap_e),
+				"age": formatters.NOT_AVAILABLE_STR if scrap_s is None else formatters.ts_diff_to_str(
+					scrap_s,
+					datetime.datetime.now(),
+					False),
+				"time_taken": formatters.NOT_AVAILABLE_STR if None in (scrap_s, scrap_e) else formatters.ts_diff_to_str(
+					scrap_s, scrap_e, False),
 				"count_succ": row[7],
 				"count_fail": row[8],
 				"succ_percentage": _percent_str_safe(row[7], row[8]),
@@ -307,8 +261,7 @@ class DbStatReader(object):
 			"""
 
 		binds = {
-			"limit": _SqliteApi.clamp_limit(record_limit),
+			"limit": SqliteApi.clamp_limit(record_limit),
 		}
 
 		return self._db.read(stmt, binds, _mapper)
-		

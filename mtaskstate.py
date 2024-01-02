@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import datetime
-from scrappers.util import formatters
+from mutil import formatters
 
 
 class TaskStateEnum(Enum):

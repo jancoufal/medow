@@ -1,6 +1,5 @@
-import sys
-from enum import Enum
 import datetime
+from enum import Enum
 
 NOT_AVAILABLE_STR = "n/a"
 
