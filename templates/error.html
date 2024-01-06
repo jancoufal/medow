@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %} - error {{page_data.error.code}} - {{page_data.error.name}}{% endblock %}
+
+{% block content %}
+<h2>Hurray &amp; congratulations!</h2>
+<p>You were able to make the site cast an error.</p>
+<p>Act like nothing bad happend. Keep smile, hold mouse still and breathe calmly.</p>
+
+<h2>Error details</h2>
+<table class="error-table">
+	<tr>
+		<td class="key">Code:</td>
+		<td class="value">{{ page_data.error.code }}</td>
+	</tr>
+	<tr>
+		<td class="key">Name:</td>
+		<td class="value">{{ page_data.error.name }}</td>
+	</tr>
+	<tr>
+		<td class="key">Description:</td>
+		<td class="value">{{ page_data.error.description }}</td>
+	</tr>
+</table>
+{% endblock %}

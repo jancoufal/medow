@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+
+{% block content %}
+<h2>App state</h2>
+<dl class="app-state">
+	<dt>Uptime:</dt>
+	<dd>{{ page_data.state.uptime }}</dd>
+	<dt>Last tasks:</dt>
+	<dd>
+		<table class="scrap-results">
+			<tr>
+				<th>#id</th>
+				<th>Scrapper</th>
+				<th>State</th>
+				<th>Age</th>
+				<th>Time Taken</th>
+				<th>Description</th>
+			</tr>
+			{%- for task_id in page_data.state.tasks.keys()|reverse -%}
+			<tr class="state-{{ page_data.state.tasks[task_id].state.value }}">
+				<td>{{ page_data.state.tasks[task_id].id }}</td>
+				<td style="white-space: pre;">{{ page_data.state.tasks[task_id].name }}</td>
+				<td>{{ page_data.state.tasks[task_id].state.value }}</td>
+				<td style="white-space: pre;">{{ page_data.state.tasks[task_id].age }}</td>
+				<td style="white-space: pre;">{{ page_data.state.tasks[task_id].time_taken }}</td>
+				<td>{{ page_data.state.tasks[task_id].result }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</dd>
+</dl>
+{% endblock %}

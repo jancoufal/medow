@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}{% endblock %}
+
+{% block content %}
+
+{% if page_data.auth_error %}
+<dl class="error-box">
+	<dt>{{ page_data.auth_error.title }}</dt>
+	<dd>{{ page_data.auth_error.message }}</dd>
+</dl>
+{% endif %}
+
+<div class="form-container">
+	<form method="POST">
+		<fieldset>
+			<div class="input-row">
+				<span>Scrap:</span>
+				<ul class="sources-list">
+					{%- for source in page_data.sources -%}
+						<li>
+							<input type="checkbox" id="source-{{ source.name }}" name="source-{{ source.name }}" checked="checked" />
+							<label for="source-{{ source.name }}">{{ source.value }}</label>
+						</li>
+					{%- endfor -%}
+				</ul>
+			</div>
+			<div class="input-row">
+				<label for="scrap-submit">&#x21CA;</label>
+				<button name="form" id="scrap-submit" type="submit" value="scrap">scrap</button>
+			</div>
+		</fieldset>
+	</form>
+</div>
+
+<div class="form-container">
+	<form method="POST">
+		<fieldset>
+			<div class="input-row">
+				<label for="url-list">YouTube-DL:</label>
+				<textarea id="url-list" name="url-list" cols="80" rows="10">https://www.youtube.com/watch?v=MV_3Dpw-BRY{{ page_data.request.args.get('url-list', '') }}</textarea>
+			</div>
+			<div class="input-row">
+				<label for="download-submit">&#x21CA;</label>
+				<button name="form" id="download-submit" type="submit" value="yt_dl">download</button>
+			</div>
+		</fieldset>
+	</form>
+</div>
+
+<div class="form-container">
+	<div class="input-row">
+		<form method="POST">
+			<fieldset>
+				<label for="nas-submit">NAS</label>
+				<button name="form" id="nas-submit" type="submit" value="nas">Wake-up NAS</button>
+			</fieldset>
+		</form>
+	</div>
+</div>
+
+
+
+{% if page_data.scrapper_results %}
+<dl class="scrap-results">
+{%- for scrapper_key, scrapper_result in page_data.scrapper_results.items() -%}
+	<dt>{{ scrapper_result|e }}</dt>
+	<dd>
+		{%- if scrapper_result.items_succeeded_count > 0 -%}
+		<div class="counter">succ count: {{ scrapper_result.items_succeeded_count }}</div>
+		<table class="success">
+			<tr>
+				<th>relative file path</th>
+				<th>remote file url</th>
+			</tr>
+			{%- for item in scrapper_result.items_succeeded -%}
+			<tr>
+				<td>{{ item.success_info.relative_file_path|e }}</td>
+				<td>{{ item.success_info.remote_file_url|e }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+		{%- endif -%}
+
+		{%- if scrapper_result.items_failed_count > 0 -%}
+		<div class="counter">failed count: {{ scrapper_result.items_failed_count }}</div>
+		<table class="failed">
+			<tr>
+				<th>item to download</th>
+				<th>exc value</th>
+				<!-- th>exc traceback</th -->
+			</tr>
+			{%- for item in scrapper_result.items_failed -%}
+			<tr>
+				<td>{{ item.error_info.item_to_download|e }}</td>
+				<td>{{ item.error_info.e_info.value|e }}</td>
+				<!-- td><pre style="text-align: left;">
+					{%- for tb_line in item.error_info.e_info.formatted_exception -%}
+					{{- tb_line|trim|e -}}<br/>
+					{%- endfor -%}
+				</pre></td -->
+			</tr>
+			{% endfor %}
+		</table>
+		{%- endif -%}
+	</dd>
+{%- endfor -%}
+</dl>
+{% endif %}
+
+{% endblock %}
