@@ -11,10 +11,10 @@ from flask import Flask, url_for, render_template, request
 import mconfig
 import scrappers
 from msource import sources
-from mdao.mscrapper import DbStatReader, DbScrapReader
+from mscrapper import DbStatReader, DbScrapReader
 from mcontext import AppContext
 from mstate import WebState
-from mtasks import TaskDummy, TaskScrapSource, TaskYoutubeDownload
+from mtasks import TaskDummy
 
 CONFIG_FILE = "config.toml"
 app = Flask(__name__)

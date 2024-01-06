@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 import datetime
-from mutil import formatters
+import mformatters
 
 
 class TaskStateEnum(Enum):
@@ -22,4 +22,4 @@ class TaskState(object):
 
 	@property
 	def age(self):
-		return formatters.ts_diff_to_str(self.start_time, datetime.datetime.now(), False)
+		return mformatters.ts_diff_to_str(self.start_time, datetime.datetime.now(), False)

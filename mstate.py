@@ -2,7 +2,7 @@ import datetime
 from typing import Dict
 
 from mtaskstate import TaskState
-from mutil import formatters
+import mformatters
 
 
 class WebState(object):
@@ -12,7 +12,7 @@ class WebState(object):
 		self._task_results = {}
 
 	def get_uptime(self):
-		return formatters.ts_diff_to_str(self._start_time, datetime.datetime.now(), include_ms=False)
+		return mformatters.ts_diff_to_str(self._start_time, datetime.datetime.now(), include_ms=False)
 
 	def update_task_state(self, task_result: TaskState):
 		self._task_results[task_result.id] = task_result
