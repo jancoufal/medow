@@ -6,10 +6,10 @@ class ExceptionInfo(object):
 	def create_from_last_exception(cls):
 		return cls(*sys.exc_info())
 
-	def __init__(self, exception_type, value, traceback):
+	def __init__(self, exception_type, value, trace_back):
 		self._exception_type = exception_type
 		self._value = value
-		self._traceback = traceback
+		self._traceback = trace_back
 
 	def __str__(self):
 		return f"{self.exception_type=!s}, {self.value=!s}"

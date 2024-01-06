@@ -22,11 +22,11 @@ def str_to_ts(fmt: TimestampFormat, ts_string: str):
 	return datetime.datetime.strptime(ts_string, fmt.value)
 
 
-def ts_diff_to_str(ts_start:datetime.datetime, ts_end:datetime.datetime, include_ms):
+def ts_diff_to_str(ts_start: datetime.datetime, ts_end: datetime.datetime, include_ms: bool):
 	return td_format((ts_start - ts_end) if ts_start > ts_end else (ts_end - ts_start), include_ms)
 
 
-def td_format(td:datetime.timedelta, include_ms):
+def td_format(td: datetime.timedelta, include_ms: bool):
 	s = [f"{td.microseconds // 1000}ms"] if include_ms else []
 	r = td.total_seconds()
 	for (period, factor) in [("s", 60), ("m", 60), ("h", 24), ("d", 7), ("w", None)]:
