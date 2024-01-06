@@ -1,0 +1,32 @@
+debug = true
+site-title = "MeDoW"
+
+# https://docs.python.org/3/library/logging.html#logging-levels
+#  0 = logging.NOTSET
+# 10 = logging.DEBUG
+# 20 = logging.INFO
+# 30 = logging.WARNING
+# 40 = logging.ERROR
+# 50 = logging.CRITICAL
+[logging]
+  name = "MeDoW"
+  format = "%(asctime)s # %(levelname)s [%(name)s] > %(message)s"
+  level = 10
+
+[server]
+  host = "0.0.0.0"
+  port = 5000
+
+[worker-thread]
+  max-workers = 1
+
+[persistence]
+  sqlite-datafile = "sql/image_box.sqlite3"
+
+[storage]
+  source-static = "images/"
+  yt-dl = "yt_dl/"
+
+[limits]
+  images = 200
+  scraps = 1000
