@@ -3,7 +3,7 @@ site_title: "MeDoW"
 logging:
   name: "MeDoW"
   format: "%(asctime)s # %(levelname)s [%(name)s] > %(message)s"
-  level: 10
+  level: 10 # see https://docs.python.org/3/library/logging.html#logging-levels (10=debug, 20=info, 30=warn, 40=err, 50=crit)
 server:
   host: 0.0.0.0
   port: 5000
