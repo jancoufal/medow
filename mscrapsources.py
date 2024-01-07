@@ -2,7 +2,6 @@ from enum import Enum
 
 
 class ScrapSource(Enum):
-	NOOP = "noop"
 	ROUMEN = "roumen"
 	ROUMEN_MASO = "roumen-maso"
 
@@ -11,4 +10,4 @@ class ScrapSource(Enum):
 		for e in ScrapSource:
 			if e.value == source:
 				return e
-		return ScrapSource.NOOP
+		raise ValueError(f"Unknown source: {source}")

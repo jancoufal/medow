@@ -15,13 +15,20 @@ class Formatter(object):
 	NOT_AVAILABLE_STR = "n/a"
 
 	@staticmethod
-	def ts_to_str(fmt: TimestampFormat, ts: datetime.timestamp = None):
+	def ts_to_str(fmt: TimestampFormat, ts: datetime = None):
 		_ts = ts if ts is not None else datetime.now()
 		return _ts.strftime(fmt.value)
 
 	@staticmethod
 	def str_to_ts(fmt: TimestampFormat, ts_string: str):
 		return datetime.strptime(ts_string, fmt.value)
+
+	@staticmethod
+	def str_to_ts_safe(fmt: TimestampFormat, ts_string: str, default_value: str | None):
+		try:
+			return datetime.strptime(ts_string, fmt.value)
+		except:
+			return default_value
 
 	@staticmethod
 	def ts_diff_to_str(ts_start: datetime, ts_end: datetime, include_ms: bool):
@@ -38,5 +45,12 @@ class Formatter(object):
 		return " ".join(s[::-1])
 
 	@staticmethod
-	def percentage_str(count:int, total:int):
+	def percentage_str(count: int, total: int):
 		return Formatter.NOT_AVAILABLE_STR if total == 0 else f"{(100.0 * count) / total:3.2f}%"
+
+	@staticmethod
+	def percentage_str_safe(count: int, total: int, default_value: str):
+		try:
+			return Formatter.NOT_AVAILABLE_STR if total == 0 else f"{(100.0 * count) / total:3.2f}%"
+		except:
+			return default_value
