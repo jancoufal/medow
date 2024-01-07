@@ -132,6 +132,7 @@ class TaskDummy(_TaskBase):
 	def __init__(self, logger: Logger, task_id: int, update_task_callback: Callable[[TaskState], None], name: str, description: str):
 		super().__init__(logger, task_id, name, update_task_callback)
 		self._description = description
+		self.on_new(f"Dummy task '{self.name}' enqueued.")
 
 	def __call__(self):
 		self.on_start(f"Dummy task #{self.id} ({self._description}) started.")

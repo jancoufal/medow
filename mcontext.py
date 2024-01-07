@@ -22,11 +22,11 @@ class AppContext(object):
 		config = Config.from_yaml_file(config_file)
 
 		logging.basicConfig(
-			format=config.logging.format,
-			level=config.logging.level,
+			format=config.logger.format,
+			level=config.logger.level,
 		)
 
-		logger = logging.getLogger(config.logging.name)
+		logger = logging.getLogger(config.logger.name)
 
 		return cls(
 			app=flask_app,

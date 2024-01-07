@@ -4,7 +4,7 @@ from typing import Dict
 
 
 @dataclass
-class ConfigLogging:
+class ConfigLogger:
 	name: str
 	format: str
 	level: int
@@ -18,13 +18,13 @@ class ConfigServer:
 
 
 @dataclass
-class ConfigWorkerThread:
-	max_workers: int
+class ConfigPersistence:
+	sqlite_datafile: str
 
 
 @dataclass
-class ConfigPersistence:
-	sqlite_datafile: str
+class ConfigWorkerThread:
+	max_workers: int
 
 
 @dataclass
@@ -35,15 +35,15 @@ class ConfigRepositoryLimits:
 
 
 @dataclass
-class ConfigStorage:
-	source_static: str
-	yt_dl: str
+class ConfigListingLimits:
+	images: int
+	scraps: int
 
 
 @dataclass
-class ConfigLimits:
-	images: int
-	scraps: int
+class ConfigStorage:
+	source_static: str
+	yt_dl: str
 
 
 @dataclass
@@ -57,11 +57,11 @@ class ConfigScrapperSettings:
 @dataclass
 class Config(YAMLWizard):
 	site_title: str
-	logging: ConfigLogging
-	worker_thread: ConfigWorkerThread
+	logger: ConfigLogger
 	server: ConfigServer
-	limits: ConfigLimits
 	persistence: ConfigPersistence
 	repository_limits: ConfigRepositoryLimits
+	listing_limits: ConfigListingLimits
+	worker_thread: ConfigWorkerThread
 	scrappers: Dict[str, ConfigScrapperSettings]
 	storage: ConfigStorage

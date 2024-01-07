@@ -1,5 +1,5 @@
 site_title: "MeDoW"
-logging:
+logger:
   name: "MeDoW"
   format: "%(asctime)s # %(levelname)s [%(name)s] > %(message)s"
   level: 10 # see https://docs.python.org/3/library/logging.html#logging-levels (10=debug, 20=info, 30=warn, 40=err, 50=crit)
@@ -7,14 +7,17 @@ server:
   host: 0.0.0.0
   port: 5000
   debug: true
-worker_thread:
-  max_workers: 1
 persistence:
   sqlite_datafile: "sql/image_box.sqlite3"
 repository_limits:
   select_min: 1
   select_max: 500
   select_fallback: 10
+listing_limits:
+  images: 200
+  scraps: 1000
+worker_thread:
+  max_workers: 1
 scrappers:
   roumen:
     base_url: "https://www.rouming.cz"
@@ -30,6 +33,3 @@ scrappers:
 storage:
   source_static: "images/"
   yt_dl: "yt_dl/"
-limits:
-  images: 200
-  scraps: 1000
