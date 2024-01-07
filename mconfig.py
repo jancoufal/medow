@@ -14,6 +14,7 @@ class ConfigLogging:
 class ConfigServer:
 	host: str
 	port: int
+	debug: bool
 
 
 @dataclass
@@ -55,7 +56,6 @@ class ConfigScrapperSettings:
 
 @dataclass
 class Config(YAMLWizard):
-	debug: bool
 	site_title: str
 	logging: ConfigLogging
 	worker_thread: ConfigWorkerThread
