@@ -1,0 +1,35 @@
+debug: true
+site_title: "MeDoW"
+logging:
+  name: "MeDoW"
+  format: "%(asctime)s # %(levelname)s [%(name)s] > %(message)s"
+  level: 10
+server:
+  host: 0.0.0.0
+  port: 5000
+worker_thread:
+  max_workers: 1
+persistence:
+  sqlite_datafile: "sql/image_box.sqlite3"
+repository_limits:
+  select_min: 1
+  select_max: 500
+  select_fallback: 10
+scrappers:
+  roumen:
+    base_url: "https://www.rouming.cz"
+    img_base: "https://www.rouming.cz/upload"
+    href_needle: "roumingShow.php"
+    url_params: {}
+  roumen_maso:
+    base_url: "https://www.roumenovomaso.cz"
+    img_base: "https://www.roumenovomaso.cz/upload"
+    href_needle: "masoShow.php"
+    url_params:
+      agree: "on"
+storage:
+  source_static: "images/"
+  yt_dl: "yt_dl/"
+limits:
+  images: 200
+  scraps: 1000

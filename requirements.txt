@@ -1,5 +1,7 @@
-dataclass-binder==0.3.4
+#dataclass-binder==0.3.4
 Flask==3.0.0
 Jinja2==3.1.2
 beautifulsoup4==4.12.2
 requests==2.31.0
+PyYAML==6.0.1
+dataclass-wizard==0.22.2
