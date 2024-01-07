@@ -26,7 +26,7 @@ class ScrapStatEntity:
 
 	@property
 	def age(self) -> str:
-		return Formatter.NOT_AVAILABLE_STR if self.scrap_start is None else Formatter.ts_diff_to_str(self.scrap_start, datetime.now(),False)
+		return Formatter.NOT_AVAILABLE_STR if self.scrap_start is None else Formatter.ts_diff_to_str(self.scrap_start, datetime.now(), False)
 
 	@property
 	def time_taken(self) -> str:
