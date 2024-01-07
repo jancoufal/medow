@@ -27,9 +27,9 @@ class RepositoryInterface(ABCMeta):
 
 
 class RepositorySourceScrapper(object):
-	def __init__(self, sqllite_api: SqliteApi, scrap_source: ScrapSource):
+	def __init__(self, sqlite_api: SqliteApi, scrap_source: ScrapSource):
 		super().__init__()
-		self._sqllite_api = sqllite_api
+		self._sqlite_api = sqlite_api
 		self._scrap_source = scrap_source
 
 	def read_recent_scraps(self, item_limit: int) -> List[ScrapStatEntity]:
@@ -70,7 +70,7 @@ class RepositorySourceScrapper(object):
 			"limit": item_limit,
 		}
 
-		return self._sqllite_api.read(stmt, binds, _row_mapper)
+		return self._sqlite_api.read(stmt, binds, _row_mapper)
 
 	def read_recent_items(self, item_limit: int) -> List[ScrapItemEntity]:
 		def _row_mapper(r) -> ScrapItemEntity:
@@ -96,4 +96,4 @@ class RepositorySourceScrapper(object):
 			"limit": item_limit
 		}
 
-		return self._sqllite_api.read(stmt, binds, _row_mapper)
+		return self._sqlite_api.read(stmt, binds, _row_mapper)
