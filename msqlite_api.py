@@ -1,24 +1,10 @@
 import pathlib
 import sqlite3
-from mconfig import ConfigRepositoryLimits
 
 
 class SqliteApi(object):
-	def __init__(self, sqlite_datafile: pathlib.Path, repository_limits: ConfigRepositoryLimits):
+	def __init__(self, sqlite_datafile: pathlib.Path):
 		self.sqlite_datafile = sqlite_datafile
-		self._limits = repository_limits
-
-	def clamp_limit(self, limit_value: int):
-		if not isinstance(limit_value, int):
-			return self._limits.select_fallback
-
-		if limit_value < self._limits.select_min:
-			return self._limits.select_min
-
-		if limit_value > self._limits.select_max:
-			return self._limits.select_max
-
-		return limit_value
 
 	def do_with_connection(self, connection_cb: callable):
 		db_conn = sqlite3.Connection(self.sqlite_datafile)
@@ -70,7 +56,7 @@ class SqliteApi(object):
 		if order_tuple_list is not None and len(order_tuple_list) > 0:
 			stmt += " order by " + ", ".join(f"{_1} {_2}" for (_1, _2) in order_tuple_list)
 
-		stmt += " limit " + str(self.clamp_limit(limit))
+		stmt += " limit " + str(int(limit))
 
 		return self.read(stmt, filter_map)
 
