@@ -90,7 +90,7 @@ class MScrapTaskItemE:
 	exception_value: str | None
 
 
-def store_entity(conn: sqlite3.Connection, entity: MScrapTaskE | MScrapTaskItemE) -> int:
+def store_entity(conn: sqlite3.Connection, entity: MScrapTaskE | MScrapTaskItemE, need_last_id: bool) -> int | None:
 	match entity:
 		case MScrapTaskE():
 			table_name = "scrap_task"
@@ -103,12 +103,15 @@ def store_entity(conn: sqlite3.Connection, entity: MScrapTaskE | MScrapTaskItemE
 	col_names = ",".join(entity_as_dict.keys())
 	bind_names = ",".join((":" + c for c in entity_as_dict.keys()))
 	stmt = f"INSERT INTO {table_name}({col_names}) values ({bind_names})"
-	cur = conn.cursor()
-	cur.execute(stmt, entity_as_dict)
-	last_id = cur.lastrowid
-	cur.connection.commit()
-	cur.close()
-	return last_id
+	if need_last_id:
+		cur = conn.cursor()
+		cur.execute(stmt, entity_as_dict)
+		last_id = cur.lastrowid
+		cur.connection.commit()
+		cur.close()
+		return last_id
+	else:
+		return None
 
 
 def migrate():
@@ -173,7 +176,7 @@ def migrate():
 				exception_type=r.exc_type,
 				exception_value=r.exc_value,
 			)
-			new_id = store_entity(c, e)
+			new_id = store_entity(c, e, True)
 			old_id_to_new_id[r.scrap_stat_id] = new_id
 		return old_id_to_new_id
 
@@ -220,7 +223,7 @@ def migrate():
 
 	def insert_scrap_task_items(c: sqlite3.Connection, task_items: List[MScrapTaskItemE]):
 		for task_item in task_items:
-			store_entity(c, task_item)
+			store_entity(c, task_item, False)
 
 	print("Writing scrap items...")
 	dst_db.do_with_connection(lambda c: insert_scrap_task_items(c, task_items))
