@@ -1,7 +1,8 @@
 import sqlite3
 from dataclasses import dataclass, asdict
-from typing import List
 from pathlib import Path
+from typing import List
+
 from msqlite_api import SqliteApi
 
 
@@ -124,6 +125,10 @@ def migrate():
 	print("Dropping tables...")
 	dst_db.do_with_cursor(drop_tables)
 
+	def reset_autoincrement_counters(c: sqlite3.Cursor):
+		c.execute("DELETE FROM sqlite_sequence")
+	print("Resetting autoincrement counters...")
+	dst_db.do_with_cursor(reset_autoincrement_counters)
 
 	def create_tables(c: sqlite3.Cursor):
 		c.execute("""CREATE TABLE IF NOT EXISTS scrap_task(
@@ -155,6 +160,7 @@ def migrate():
 	dst_db.do_with_cursor(create_tables)
 
 	def insert_scrap_tasks(c: sqlite3.Connection):
+		old_id_to_new_id = {}
 		for r in src_data.stat:
 			e = MScrapTaskE(
 				pk_id=r.scrap_stat_id,
@@ -167,42 +173,57 @@ def migrate():
 				exception_type=r.exc_type,
 				exception_value=r.exc_value,
 			)
-			store_entity(c, e)
+			new_id = store_entity(c, e)
+			old_id_to_new_id[r.scrap_stat_id] = new_id
+		return old_id_to_new_id
 
 	print("Inserting scrap tasks...")
-	dst_db.do_with_connection(insert_scrap_tasks)
+	task_id_map = dst_db.do_with_connection(insert_scrap_tasks)
 
-	def insert_scrap_task_items(c: sqlite3.Connection):
+	def read_scrap_task_items(task_id_map: dict[int, int]) -> List[MScrapTaskItemE]:
+		task_items = []
 		for r in src_data.items:
-			e = MScrapTaskItemE(
-				pk_id=None,
-				task_id=r.scrap_stat_id,
-				ts_start=f"{r.ts_date} {r.ts_time}",
-				ts_end=None,
-				status="finished",
-				item_name=r.name,
-				local_path=r.local_path,
-				exception_type=None,
-				exception_value=None,
-			)
-			store_entity(c, e)
+			if r.scrap_stat_id is not None:
+				task_items.append(MScrapTaskItemE(
+					pk_id=None,
+					task_id=task_id_map[r.scrap_stat_id],
+					ts_start=f"{r.ts_date} {r.ts_time}",
+					ts_end=None,
+					status="finished",
+					item_name=r.name,
+					local_path=r.local_path,
+					exception_type=None,
+					exception_value=None,
+				))
 
 		for r in src_data.fails:
-			e = MScrapTaskItemE(
-				pk_id=None,
-				task_id=r.scrap_stat_id,
-				ts_start=f"{r.ts_date} {r.ts_time}",
-				ts_end=None,
-				status="failed",
-				item_name=r.item_name,
-				local_path=None,
-				exception_type=r.exc_type,
-				exception_value=r.exc_value,
-			)
-			store_entity(c, e)
+			if r.scrap_stat_id is not None:
+				task_items.append(MScrapTaskItemE(
+					pk_id=None,
+					task_id=task_id_map[r.scrap_stat_id],
+					ts_start=f"{r.ts_date} {r.ts_time}",
+					ts_end=None,
+					status="failed",
+					item_name=r.item_name,
+					local_path=None,
+					exception_type=r.exc_type,
+					exception_value=r.exc_value,
+				))
+		return task_items
 
-	print("Inserting scrap task items...")
-	dst_db.do_with_cursor(insert_scrap_task_items)
+	print("Reading scrap task items...")
+	task_items = read_scrap_task_items(task_id_map)
+	print(f"{len(task_items)} items read.")
+
+	print("Sorting scrap items by date...")
+	task_items.sort(key=lambda e: e.ts_start)
+
+	def insert_scrap_task_items(c: sqlite3.Connection, task_items: List[MScrapTaskItemE]):
+		for task_item in task_items:
+			store_entity(c, task_item)
+
+	print("Writing scrap items...")
+	dst_db.do_with_connection(lambda c: insert_scrap_task_items(c, task_items))
 
 	print("Done.")
 
