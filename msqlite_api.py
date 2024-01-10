@@ -1,9 +1,8 @@
-import pathlib
 import sqlite3
 
 
 class SqliteApi(object):
-	def __init__(self, sqlite_datafile: pathlib.Path):
+	def __init__(self, sqlite_datafile: str):
 		self.sqlite_datafile = sqlite_datafile
 
 	def do_with_connection(self, connection_cb: callable):

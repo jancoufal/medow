@@ -1,11 +1,10 @@
 import sqlite3
-from dataclasses import dataclass, asdict
-from pathlib import Path
+from dataclasses import dataclass
 from typing import List
 
-from msqlite_api import SqliteApi
-from mrepositoryentities import MScrapTaskE, MScrapTaskItemE
 from mrepository import Repository
+from mrepositoryentities import MScrapTaskE, MScrapTaskItemE
+from msqlite_api import SqliteApi
 
 
 @dataclass
@@ -56,7 +55,7 @@ class IBData:
 	fails: List[IBScrapFail]
 
 	@classmethod
-	def load_from_datafile(cls, datafile_path: Path):
+	def load_from_datafile(cls, datafile_path: str):
 		api = SqliteApi(datafile_path)
 
 		return IBData(
@@ -96,10 +95,10 @@ class MScrapTaskItemE:
 
 def migrate():
 	print("Loading data from source DB...")
-	src_data = IBData.load_from_datafile(Path("sql/image_box.sqlite3"))
+	src_data = IBData.load_from_datafile("sql/image_box.sqlite3")
 
 	print("Opening destination DB...")
-	dst_db = SqliteApi(Path("sql/medow.sqlite3"))
+	dst_db = SqliteApi("sql/medow.sqlite3")
 
 	print("Initializing repository...")
 	repository = Repository(dst_db)

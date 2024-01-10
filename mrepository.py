@@ -14,9 +14,8 @@ from mrepositoryentities import *
 
 
 class _Tables(Enum):
-	SCRAP_STAT = "scrap_stat"
-	SCRAP_FAILS = "scrap_fails"
-	SCRAP_ITEMS = "scrap_items"
+	SCRAP_TASK = "scrap_task"
+	SCRAP_TASK_ITEM = "scrap_task_item"
 
 
 class _ScrapState(Enum):
@@ -64,6 +63,15 @@ class Repository(object):
 		else:
 			return self._sqlite_api.do_with_connection(_exec_without_id_return)
 
+	def read_recent_scrap_tasks(self, scrap_source: ScrapSource, item_limit: int) -> List[MScrapTaskE]:
+		stmt = f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit"
+
+		binds = {
+			"scrapper": scrap_source.value,
+			"limit": item_limit,
+		}
+
+		return self._sqlite_api.read(stmt, binds, lambda rs: MScrapTaskE(*rs))
 
 class RepositorySourceScrapper(object):
 	def __init__(self, sqlite_api: SqliteApi, scrap_source: ScrapSource):
