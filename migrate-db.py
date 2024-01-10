@@ -4,6 +4,8 @@ from pathlib import Path
 from typing import List
 
 from msqlite_api import SqliteApi
+from mrepositoryentities import MScrapTaskE, MScrapTaskItemE
+from mrepository import Repository
 
 
 @dataclass
@@ -64,6 +66,7 @@ class IBData:
 		)
 
 
+"""
 @dataclass
 class MScrapTaskE:
 	pk_id: int | None
@@ -88,30 +91,7 @@ class MScrapTaskItemE:
 	local_path: str | None
 	exception_type: str | None
 	exception_value: str | None
-
-
-def store_entity(conn: sqlite3.Connection, entity: MScrapTaskE | MScrapTaskItemE, need_last_id: bool) -> int | None:
-	match entity:
-		case MScrapTaskE():
-			table_name = "scrap_task"
-		case MScrapTaskItemE():
-			table_name = "scrap_task_item"
-		case _:
-			raise ValueError(f"Unknown entity {entity}.")
-
-	entity_as_dict = asdict(entity)
-	col_names = ",".join(entity_as_dict.keys())
-	bind_names = ",".join((":" + c for c in entity_as_dict.keys()))
-	stmt = f"INSERT INTO {table_name}({col_names}) values ({bind_names})"
-	if need_last_id:
-		cur = conn.cursor()
-		cur.execute(stmt, entity_as_dict)
-		last_id = cur.lastrowid
-		cur.connection.commit()
-		cur.close()
-		return last_id
-	else:
-		return None
+"""
 
 
 def migrate():
@@ -120,6 +100,9 @@ def migrate():
 
 	print("Opening destination DB...")
 	dst_db = SqliteApi(Path("sql/medow.sqlite3"))
+
+	print("Initializing repository...")
+	repository = Repository(dst_db)
 
 	def drop_tables(c: sqlite3.Cursor):
 		c.execute("DROP TABLE IF EXISTS scrap_task")
@@ -162,28 +145,31 @@ def migrate():
 	print("Creating tables...")
 	dst_db.do_with_cursor(create_tables)
 
-	def insert_scrap_tasks(c: sqlite3.Connection):
-		old_id_to_new_id = {}
-		for r in src_data.stat:
-			e = MScrapTaskE(
-				pk_id=r.scrap_stat_id,
-				scrapper=r.source,
-				ts_start=f"{r.ts_start_date} {r.ts_start_time}",
-				ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
-				status=r.status,
-				item_count_success=r.count_success,
-				item_count_fail=r.count_fail,
-				exception_type=r.exc_type,
-				exception_value=r.exc_value,
-			)
-			new_id = store_entity(c, e, True)
-			old_id_to_new_id[r.scrap_stat_id] = new_id
-		return old_id_to_new_id
+	print("Migrating scrap tasks...")
+	tasks = []
+	for r in src_data.stat:
+		tasks.append(MScrapTaskE(
+			pk_id=r.scrap_stat_id,
+			scrapper=r.source,
+			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
+			ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
+			status=r.status,
+			item_count_success=r.count_success,
+			item_count_fail=r.count_fail,
+			exception_type=r.exc_type,
+			exception_value=r.exc_value,
+		))
+	print(f"{len(tasks)} tasks read.")
 
-	print("Inserting scrap tasks...")
-	task_id_map = dst_db.do_with_connection(insert_scrap_tasks)
+	print("Writing tasks...")
+	task_id_map = {}
+	for task in tasks:
+		old_id = task.pk_id
+		task.pk_id = None
+		new_id = repository.save_entity(task, True)
+		task_id_map[old_id] = new_id
 
-	def read_scrap_task_items(task_id_map: dict[int, int]) -> List[MScrapTaskItemE]:
+	def migrating_scrap_task_items(task_id_map: dict[int, int]) -> List[MScrapTaskItemE]:
 		task_items = []
 		for r in src_data.items:
 			if r.scrap_stat_id is not None:
@@ -214,19 +200,16 @@ def migrate():
 				))
 		return task_items
 
-	print("Reading scrap task items...")
-	task_items = read_scrap_task_items(task_id_map)
+	print("Migrating scrap task items...")
+	task_items = migrating_scrap_task_items(task_id_map)
 	print(f"{len(task_items)} items read.")
 
 	print("Sorting scrap items by date...")
 	task_items.sort(key=lambda e: e.ts_start)
 
-	def insert_scrap_task_items(c: sqlite3.Connection, task_items: List[MScrapTaskItemE]):
-		for task_item in task_items:
-			store_entity(c, task_item, False)
-
 	print("Writing scrap items...")
-	dst_db.do_with_connection(lambda c: insert_scrap_task_items(c, task_items))
+	for task_item in task_items:
+		repository.save_entity(task_item, False)
 
 	print("Done.")
 
