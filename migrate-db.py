@@ -153,8 +153,8 @@ def migrate():
 			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
 			ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
 			status=r.status,
-			item_count_success=r.count_success,
-			item_count_fail=r.count_fail,
+			item_count_success=r.count_success if r.count_success is not None else 0,
+			item_count_fail=r.count_fail if r.count_fail is not None else 0,
 			exception_type=r.exc_type,
 			exception_value=r.exc_value,
 		))

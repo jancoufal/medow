@@ -2,15 +2,15 @@
 persistent repository implementation
 """
 
-from abc import ABCMeta
-from typing import List, Tuple
-from enum import Enum
-from dataclasses import asdict
 import sqlite3
+from abc import ABCMeta
+from dataclasses import asdict
+from enum import Enum
+from typing import List
 
-from msqlite_api import SqliteApi
-from mscrapsources import ScrapSource
 from mrepositoryentities import *
+from mscrapsources import ScrapSource
+from msqlite_api import SqliteApi
 
 
 class _Tables(Enum):
@@ -33,15 +33,15 @@ class Repository(object):
 		super().__init__()
 		self._sqlite_api = sqlite_api
 
-	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool):
+	@staticmethod
+	def _get_entity_table(entity: MScrapTaskE | MScrapTaskItemE) -> str:
 		match entity:
-			case MScrapTaskE():
-				table_name = "scrap_task"
-			case MScrapTaskItemE():
-				table_name = "scrap_task_item"
-			case _:
-				raise ValueError(f"Unknown entity {entity}.")
+			case MScrapTaskE(): return "scrap_task"
+			case MScrapTaskItemE(): return "scrap_task_item"
+			case _: raise ValueError(f"Unknown entity {entity}.")
 
+	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool):
+		table_name = Repository._get_entity_table(entity)
 		entity_as_dict = asdict(entity)
 		col_names = ",".join(entity_as_dict.keys())
 		bind_names = ",".join((":" + c for c in entity_as_dict.keys()))
@@ -63,6 +63,29 @@ class Repository(object):
 		else:
 			return self._sqlite_api.do_with_connection(_exec_without_id_return)
 
+	def update_entity(self, entity: MScrapTaskE | MScrapTaskItemE):
+		def _updater(conn: sqlite3.Connection):
+			# rename all value_mapping keys to "new_{key}" and where_condition_mapping keys to "where_{key}"
+			# statement pattern:
+			# update table_name set col_a=:new_col_a, col_b=:new_col_b where col_c=:where_col_c and col_d=:where_col_d
+			table_name = Repository._get_entity_table(entity)
+			entity_as_dict = asdict(entity)
+			stmt_set = ", ".join(map(lambda k: f"{k}=:new_{k}", entity_as_dict.keys()))
+			stmt_whr = {
+				**{f"new_{k}": v for (k, v) in entity_as_dict.items()},
+				**{"whr_pk_id": entity.pk_id}
+			}
+			stmt = f"update {table_name} set {stmt_set} where pk_id=:whr_pk_id"
+			conn.execute(stmt, stmt_whr)
+		self._sqlite_api.do_with_connection(_updater)
+
+	def load_entity_scrap_task(self, pk_id: int) -> MScrapTaskE | None:
+		return self._sqlite_api.read(
+			f"select * from {_Tables.SCRAP_TASK.value} where pk_id=:pk_id",
+			{"pk_id": pk_id},
+			lambda rs: MScrapTaskE(*rs)
+		).pop()
+
 	def read_recent_scrap_tasks(self, scrap_source: ScrapSource, item_limit: int) -> List[MScrapTaskE]:
 		stmt = f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit"
 
@@ -72,6 +95,7 @@ class Repository(object):
 		}
 
 		return self._sqlite_api.read(stmt, binds, lambda rs: MScrapTaskE(*rs))
+
 
 class RepositorySourceScrapper(object):
 	def __init__(self, sqlite_api: SqliteApi, scrap_source: ScrapSource):
