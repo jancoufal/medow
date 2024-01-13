@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from logging import Logger
 from typing import List
 from mformatters import Formatter, TimestampFormat
-from mrepository import Repository
+from mrepository import RepositoryInterface
 from mrepositoryentities import TaskStatusEnum, MScrapTaskE, MScrapTaskItemE
 
 
@@ -111,13 +111,11 @@ class ScrapperEventLogger(ScrapperEvents):
 
 
 class ScrapperEventRepositoryWriter(ScrapperEvents):
-	def __init__(self, repository: Repository, scrapper_type: ScrapperType):
-		super().__init__(ScrapperType)
+	def __init__(self, repository: RepositoryInterface, scrapper_type: ScrapperType):
 		self._repository = repository
-		self._scrapper_type = scrapper_type
 		self._entity_task = MScrapTaskE(
 			pk_id=None,
-			scrapper=self._scrapper_type.value,
+			scrapper=scrapper_type.value,
 			ts_start=ScrapperEventRepositoryWriter._get_current_timestamp(),
 			ts_end=None,
 			status=TaskStatusEnum.CREATED.value,
@@ -172,6 +170,7 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 		self._entity_task_item.ts_end = ScrapperEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.local_path = local_path
 		self._repository.update_entity(self._entity_task_item)
+		self._entity_task.item_count_success += 1
 
 	def on_item_error(self, ex: Exception) -> None:
 		self._entity_task_item.status = TaskStatusEnum.ERROR.value
@@ -179,3 +178,4 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 		self._entity_task.exception_type = ex.__class__.__name__
 		self._entity_task.exception_value = str(ex)
 		self._repository.update_entity(self._entity_task_item)
+		self._entity_task.item_count_fail += 1

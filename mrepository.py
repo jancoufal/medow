@@ -3,9 +3,8 @@ persistent repository implementation
 """
 
 import sqlite3
-from abc import ABCMeta
+from abc import ABC, abstractmethod
 from dataclasses import asdict
-from enum import Enum
 from typing import List
 
 from mrepositoryentities import *
@@ -24,11 +23,17 @@ class _ScrapState(Enum):
 	FAILED = "failed"
 
 
-class RepositoryInterface(ABCMeta):
-	pass
+class RepositoryInterface(ABC):
+	@abstractmethod
+	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool):
+		pass
+
+	@abstractmethod
+	def update_entity(self, entity: MScrapTaskE | MScrapTaskItemE) -> None:
+		pass
 
 
-class Repository(object):
+class Repository(RepositoryInterface):
 	def __init__(self, sqlite_api: SqliteApi):
 		super().__init__()
 		self._sqlite_api = sqlite_api
@@ -40,7 +45,7 @@ class Repository(object):
 			case MScrapTaskItemE(): return "scrap_task_item"
 			case _: raise ValueError(f"Unknown entity {entity}.")
 
-	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool):
+	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool) -> int | None:
 		table_name = Repository._get_entity_table(entity)
 		entity_as_dict = asdict(entity)
 		col_names = ",".join(entity_as_dict.keys())
@@ -63,7 +68,7 @@ class Repository(object):
 		else:
 			return self._sqlite_api.do_with_connection(_exec_without_id_return)
 
-	def update_entity(self, entity: MScrapTaskE | MScrapTaskItemE):
+	def update_entity(self, entity: MScrapTaskE | MScrapTaskItemE) -> None:
 		def _updater(conn: sqlite3.Connection):
 			# rename all value_mapping keys to "new_{key}" and where_condition_mapping keys to "where_{key}"
 			# statement pattern:
