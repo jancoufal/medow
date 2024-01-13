@@ -1,6 +1,14 @@
+from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
 from mformatters import Formatter, TimestampFormat
+
+
+class TaskStatusEnum(Enum):
+	CREATED = "created"
+	RUNNING = "running"
+	COMPLETED = "completed"
+	ERROR = "error"
 
 
 @dataclass
