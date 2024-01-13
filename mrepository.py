@@ -9,7 +9,7 @@ from enum import Enum
 from typing import List
 
 from mrepositoryentities import *
-from mscrapsources import ScrapSource
+from mscrappers_api import ScrapperType
 from msqlite_api import SqliteApi
 
 
@@ -86,10 +86,10 @@ class Repository(object):
 			lambda rs: MScrapTaskE(*rs)
 		).pop()
 
-	def read_recent_scrap_tasks(self, scrap_source: ScrapSource, item_limit: int) -> List[MScrapTaskE]:
+	def read_recent_scrap_tasks(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit",
-			binds={"scrapper": scrap_source.value, "limit": item_limit},
+			binds={"scrapper": scrapper_type.value, "limit": item_limit},
 			row_mapper=lambda rs: MScrapTaskE(*rs)
 		)
 
@@ -100,9 +100,9 @@ class Repository(object):
 			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)
 
-	def read_recent_scrap_task_items(self, scrap_source: ScrapSource, item_limit: int) -> List[MScrapTaskE]:
+	def read_recent_scrap_task_items(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where scrapper=:scrapper order by pk_id desc limit :limit",
-			binds={"scrapper": scrap_source.value, "limit": item_limit},
+			binds={"scrapper": scrapper_type.value, "limit": item_limit},
 			row_mapper=lambda rs: MScrapTaskE(*rs)
 		)
