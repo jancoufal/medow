@@ -87,84 +87,22 @@ class Repository(object):
 		).pop()
 
 	def read_recent_scrap_tasks(self, scrap_source: ScrapSource, item_limit: int) -> List[MScrapTaskE]:
-		stmt = f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit"
+		return self._sqlite_api.read(
+			sql_stmt=f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit",
+			binds={"scrapper": scrap_source.value, "limit": item_limit},
+			row_mapper=lambda rs: MScrapTaskE(*rs)
+		)
 
-		binds = {
-			"scrapper": scrap_source.value,
-			"limit": item_limit,
-		}
+	def read_scrap_task_items(self, task_entity: MScrapTaskE) -> List[MScrapTaskE]:
+		return self._sqlite_api.read(
+			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where task_id=:task_id order by pk_id asc",
+			binds={"task_id": task_entity.pk_id},
+			row_mapper=lambda rs: MScrapTaskItemE(*rs)
+		)
 
-		return self._sqlite_api.read(stmt, binds, lambda rs: MScrapTaskE(*rs))
-
-
-class RepositorySourceScrapper(object):
-	def __init__(self, sqlite_api: SqliteApi, scrap_source: ScrapSource):
-		super().__init__()
-		self._sqlite_api = sqlite_api
-		self._scrap_source = scrap_source
-
-	# def read_recent_scraps(self, item_limit: int) -> List[MScrapTaskE]:
-	# 	def _row_mapper(r) -> ScrapStatEntity:
-	# 		return ScrapStatEntity(
-	# 			scrap_id=r[0],
-	# 			source=r[1],
-	# 			status=r[2],
-	# 			scrap_start=Formatter.str_to_ts_safe(TimestampFormat.DATETIME_MS, f"{r[3]} {r[4]}", None),
-	# 			scrap_end=Formatter.str_to_ts_safe(TimestampFormat.DATETIME_MS, f"{r[5]} {r[6]}", None),
-	# 			count_success=r[7],
-	# 			count_fail=r[8],
-	# 			exc_type=r[9],
-	# 			exc_value=r[10],
-	# 			exc_traceback=r[11],
-	# 		)
-	#
-	# 	stmt = f"""
-	# 		select
-	# 			{_Tables.SCRAP_STAT.value}_id,
-	# 			source,
-	# 			status,
-	# 			ts_start_date,
-	# 			ts_start_time,
-	# 			ts_end_date,
-	# 			ts_end_time,
-	# 			succ_count,
-	# 			fail_count,
-	# 			exc_type,
-	# 			exc_value,
-	# 			exc_traceback
-	# 		from {_Tables.SCRAP_STAT.value}
-	# 		order by {_Tables.SCRAP_STAT.value}_id desc
-	# 		limit :limit
-	# 		"""
-	#
-	# 	binds = {
-	# 		"limit": item_limit,
-	# 	}
-	#
-	# 	return self._sqlite_api.read(stmt, binds, _row_mapper)
-	#
-	# def read_recent_items(self, item_limit: int) -> List[ScrapItemEntity]:
-	# 	def _row_mapper(r) -> ScrapItemEntity:
-	# 		return ScrapItemEntity(
-	# 			source=self._scrap_source.value,
-	# 			scrap_timestamp=Formatter.str_to_ts(TimestampFormat.DATETIME_MS, f"{r[0]} {r[1]}"),
-	# 			name=r[2],
-	# 			local_path=r[3],
-	# 			impressions=r[4]
-	# 		)
-	#
-	# 	stmt = f"""
-	# 		select ts_date, ts_time, name, local_path, impressions
-	# 		from {_Tables.SCRAP_ITEMS.value}
-	# 		inner join {_Tables.SCRAP_STAT.value}
-	# 			on {_Tables.SCRAP_STAT.value}.scrap_stat_id={_Tables.SCRAP_ITEMS.value}.scrap_stat_id
-	# 		where source=:source
-	# 		order by ts_date desc, ts_time desc
-	# 		limit :limit"""
-	#
-	# 	binds = {
-	# 		"source": self._scrap_source.value,
-	# 		"limit": item_limit
-	# 	}
-	#
-	# 	return self._sqlite_api.read(stmt, binds, _row_mapper)
+	def read_recent_scrap_task_items(self, scrap_source: ScrapSource, item_limit: int) -> List[MScrapTaskE]:
+		return self._sqlite_api.read(
+			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where scrapper=:scrapper order by pk_id desc limit :limit",
+			binds={"scrapper": scrap_source.value, "limit": item_limit},
+			row_mapper=lambda rs: MScrapTaskE(*rs)
+		)
