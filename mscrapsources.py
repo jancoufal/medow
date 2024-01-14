@@ -1,6 +1,8 @@
 from enum import Enum
 
 
+# TODO: remove
+
 class ScrapSource(Enum):
 	ROUMEN = "roumen"
 	ROUMEN_MASO = "roumen-maso"

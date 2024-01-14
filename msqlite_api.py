@@ -2,16 +2,35 @@ import sqlite3
 
 
 class SqliteApi(object):
-	def __init__(self, sqlite_datafile: str):
+	def __init__(self, sqlite_datafile: str, keep_connection_open: bool):
 		self.sqlite_datafile = sqlite_datafile
+		self._keep_connection_open = keep_connection_open
+		self._connection = None
+
+	@classmethod
+	def create_persistent(cls, sqlite_datafile: str):
+		return cls(sqlite_datafile, False)
+
+	@classmethod
+	def create_in_memory(cls):
+		return cls("file::memory:", True)
+
+	def _connection_open(self):
+		if self._keep_connection_open and self._connection is None:
+			self._connection = sqlite3.connect(self.sqlite_datafile)
+		return self._connection if self._keep_connection_open else sqlite3.connect(self.sqlite_datafile)
+
+	def _connection_close(self, conn: sqlite3.Connection):
+		if not self._keep_connection_open:
+			conn.close()
 
 	def do_with_connection(self, connection_cb: callable):
-		db_conn = sqlite3.Connection(self.sqlite_datafile)
+		db_conn = self._connection_open()
 		try:
 			with db_conn:
 				return connection_cb(db_conn)
 		finally:
-			db_conn.close()
+			self._connection_close(db_conn)
 
 	def do_with_cursor(self, cursor_cb: callable):
 		def _cursor_call(connection):
