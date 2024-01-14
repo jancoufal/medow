@@ -8,7 +8,7 @@ server:
   port: 5000
   debug: true
 persistence:
-  sqlite_datafile: "sql/image_box.sqlite3"
+  sqlite_datafile: "sql/medow.sqlite3"
 repository_limits:
   select_min: 1
   select_max: 500

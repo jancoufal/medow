@@ -1,27 +1,36 @@
 import sqlite3
+from logging import Logger
 
 
 class SqliteApi(object):
-	def __init__(self, sqlite_datafile: str, keep_connection_open: bool):
+	def __init__(self, logger: Logger, sqlite_datafile: str, keep_connection_open: bool):
+		self._logger = logger
+		self._logger_sql = logger.getChild("sql")
 		self.sqlite_datafile = sqlite_datafile
 		self._keep_connection_open = keep_connection_open
-		self._connection = None
+		self._kept_connection = None
 
 	@classmethod
-	def create_persistent(cls, sqlite_datafile: str):
-		return cls(sqlite_datafile, False)
+	def create_persistent(cls, logger: Logger, sqlite_datafile: str):
+		return cls(logger, sqlite_datafile, False)
 
 	@classmethod
-	def create_in_memory(cls):
-		return cls("file::memory:", True)
+	def create_in_memory(cls, logger: Logger):
+		return cls(logger, "file::memory:", True)
 
 	def _connection_open(self):
-		if self._keep_connection_open and self._connection is None:
-			self._connection = sqlite3.connect(self.sqlite_datafile)
-		return self._connection if self._keep_connection_open else sqlite3.connect(self.sqlite_datafile)
+		def _connection_open_impl():
+			self._logger.debug(f"Opening connection for '{self.sqlite_datafile}'.")
+			return sqlite3.connect(self.sqlite_datafile)
+
+		if self._keep_connection_open and self._kept_connection is None:
+			self._kept_connection = _connection_open_impl()
+
+		return self._kept_connection if self._keep_connection_open else _connection_open_impl()
 
 	def _connection_close(self, conn: sqlite3.Connection):
 		if not self._keep_connection_open:
+			self._logger.debug(f"Closing connection for '{self.sqlite_datafile}'.")
 			conn.close()
 
 	def do_with_connection(self, connection_cb: callable):
@@ -52,6 +61,7 @@ class SqliteApi(object):
 				result.append(r_mapper(r))
 			return result
 
+		self._logger_sql.debug(f"SQL: {sql_stmt}, binds: {binds}")
 		return self.do_with_cursor(_reader)
 
 	def compose_and_read(
@@ -76,12 +86,14 @@ class SqliteApi(object):
 
 		stmt += " limit " + str(int(limit))
 
+		self._logger_sql.debug(f"SQL: {stmt}")
 		return self.read(stmt, filter_map)
 
 	def write(self, table_name, value_mapping: dict):
 		def _writer(connection):
 			cols = list(value_mapping.keys())
 			sql_stmt = f"insert into {table_name}({', '.join(cols)}) values (:{', :'.join(cols)})"
+			self._logger_sql.debug(f"SQL: {sql_stmt}")
 			connection.execute(sql_stmt, value_mapping)
 
 		return self.do_with_connection(_writer)
@@ -94,6 +106,7 @@ class SqliteApi(object):
 			stmt_set = ", ".join(map(lambda k: f"{k}=:new_{k}", value_mapping.keys()))
 			stmt_whr = " and ".join(map(lambda k: f"{k}=:where_{k}", where_condition_mapping.keys()))
 			sql_stmt = f"update {table_name} set {stmt_set} where {stmt_whr}"
+			self._logger_sql.debug(f"SQL: {sql_stmt}")
 			connection.execute(sql_stmt, {
 				**{f"new_{k}": v for (k, v) in value_mapping.items()},
 				**{f"where_{k}": v for (k, v) in where_condition_mapping.items()}
@@ -103,7 +116,10 @@ class SqliteApi(object):
 
 	def read_last_seq(self, table_name):
 		def _reader(cursor):
-			cursor.execute("select seq from sqlite_sequence where name=?", (table_name,))
+			stmt = "select seq from sqlite_sequence where name=?"
+			binds = table_name,
+			cursor.execute(stmt, binds)
+			self._logger_sql.debug(f"SQL: {stmt}, binds: {binds}")
 			return cursor.fetchone()[0]
 
 		return self.do_with_cursor(_reader)

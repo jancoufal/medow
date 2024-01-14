@@ -1,10 +1,10 @@
 from sqlite3 import Connection
-from msqlite_api import SqliteApi
+from mrepository import Repository
 
 
 class RepositoryInstaller(object):
-	def __init__(self, sqlite_api: SqliteApi):
-		self.sqlite_api = sqlite_api
+	def __init__(self, repository: Repository):
+		self._repository = repository
 
 	def create_tables(self):
 		def _create_tables_impl(c: Connection):
@@ -33,4 +33,4 @@ class RepositoryInstaller(object):
 				FOREIGN KEY (task_id) REFERENCES scrap_task(pk_id)
 			);""")
 
-		self.sqlite_api.do_with_connection(_create_tables_impl)
+		self._repository.get_sqlite_api().do_with_connection(_create_tables_impl)

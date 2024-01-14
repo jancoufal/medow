@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from logging import Logger, basicConfig, getLogger
+from typing import Callable
 
 from flask import Flask
 
@@ -35,14 +36,22 @@ class AppContext(object):
 		logger.info(f"Logger created with level '{config.logger.level}'.")
 		logger.info(f"Config '{config_file}' loaded.")
 
-		logger.info(f"Creating persistent repository. Data file '{config.persistence.sqlite_datafile}'.")
-		repository_persistent = Repository(SqliteApi.create_persistent(config.persistence.sqlite_datafile))
+		def create_repository(repository_logger: Logger, creator: Callable[[Logger], SqliteApi]) -> Repository:
+			repository_logger.info(f"Creating repository.")
+			return Repository(repository_logger.getChild("repository"), creator(repository_logger.getChild("sqlapi")))
 
-		logger.info(f"Creating in-memory repository.")
-		sqlapi_in_memory = SqliteApi.create_in_memory()
+		repository_persistent = create_repository(
+			logger.getChild("persistent"),
+			lambda _logger: SqliteApi.create_persistent(_logger, config.persistence.sqlite_datafile)
+		)
+
+		repository_in_memory = create_repository(
+			logger.getChild("in_memory"),
+			lambda _logger: SqliteApi.create_in_memory(_logger)
+		)
+
 		logger.info(f"Creating tables in in-memory repository.")
-		RepositoryInstaller(sqlapi_in_memory).create_tables()
-		repository_in_memory = Repository(sqlapi_in_memory)
+		RepositoryInstaller(repository_in_memory).create_tables()
 
 		return cls(
 			app=flask_app,

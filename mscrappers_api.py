@@ -20,6 +20,10 @@ class ScrapperType(Enum):
 
 class ScrapperEvents(ABC):
 	@abstractmethod
+	def on_new(self) -> None:
+		pass
+
+	@abstractmethod
 	def on_start(self) -> None:
 		pass
 
@@ -51,6 +55,13 @@ class ScrapperEvents(ABC):
 class ScrapperEventDispatcher(ScrapperEvents):
 	def __init__(self, event_handlers: Tuple[ScrapperEvents, ...]):
 		self._event_handlers = tuple(event_handlers)
+
+	def __str__(self):
+		return f"ScrapperEventDispatcher for {len(self._event_handlers)} event handlers"
+
+	def on_new(self) -> None:
+		for event_handler in self._event_handlers:
+			event_handler.on_new()
 
 	def on_start(self) -> None:
 		for event_handler in self._event_handlers:

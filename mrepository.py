@@ -2,10 +2,11 @@
 persistent repository implementation
 """
 
-import sqlite3
+from logging import Logger
 from abc import ABC, abstractmethod
 from dataclasses import asdict
 from typing import List
+import sqlite3
 
 from mrepositoryentities import *
 from mscrappers_api import ScrapperType
@@ -34,8 +35,9 @@ class RepositoryInterface(ABC):
 
 
 class Repository(RepositoryInterface):
-	def __init__(self, sqlite_api: SqliteApi):
+	def __init__(self, logger: Logger, sqlite_api: SqliteApi):
 		super().__init__()
+		self._logger = logger
 		self._sqlite_api = sqlite_api
 
 	@staticmethod
@@ -44,6 +46,9 @@ class Repository(RepositoryInterface):
 			case MScrapTaskE(): return "scrap_task"
 			case MScrapTaskItemE(): return "scrap_task_item"
 			case _: raise ValueError(f"Unknown entity {entity}.")
+
+	def get_sqlite_api(self) -> SqliteApi:
+		return self._sqlite_api
 
 	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool) -> int | None:
 		table_name = Repository._get_entity_table(entity)
@@ -62,6 +67,8 @@ class Repository(RepositoryInterface):
 			last_id = cur.lastrowid
 			cur.connection.commit()
 			return last_id
+
+		self._logger.debug(f"Saving entity {entity.__class__.__name__}.")
 
 		if get_last_id:
 			return self._sqlite_api.do_with_cursor(_exec_with_id_return)
@@ -82,9 +89,12 @@ class Repository(RepositoryInterface):
 			}
 			stmt = f"update {table_name} set {stmt_set} where pk_id=:whr_pk_id"
 			conn.execute(stmt, stmt_whr)
+
+		self._logger.debug(f"Updating entity {entity.__class__.__name__}.")
 		self._sqlite_api.do_with_connection(_updater)
 
 	def load_entity_scrap_task(self, pk_id: int) -> MScrapTaskE | None:
+		self._logger.debug(f"Reading entity 'MScrapTaskE' for pk_id '{pk_id}'.")
 		return self._sqlite_api.read(
 			f"select * from {_Tables.SCRAP_TASK.value} where pk_id=:pk_id",
 			{"pk_id": pk_id},
@@ -92,13 +102,15 @@ class Repository(RepositoryInterface):
 		).pop()
 
 	def read_recent_scrap_tasks(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
+		self._logger.debug(f"Reading entities 'MScrapTaskE' for scrapper '{scrapper_type.value}' limited to {item_limit} items.")
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit",
 			binds={"scrapper": scrapper_type.value, "limit": item_limit},
 			row_mapper=lambda rs: MScrapTaskE(*rs)
 		)
 
-	def read_scrap_task_items(self, task_entity: MScrapTaskE) -> List[MScrapTaskE]:
+	def read_scrap_task_items(self, task_entity: MScrapTaskE) -> List[MScrapTaskItemE]:
+		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where task_id=:task_id order by pk_id asc",
 			binds={"task_id": task_entity.pk_id},
@@ -106,6 +118,7 @@ class Repository(RepositoryInterface):
 		)
 
 	def read_recent_scrap_task_items(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
+		self._logger.debug(f"Reading recent entities 'MScrapTaskE' for scrapper '{scrapper_type.value}' limited to {item_limit} items.")
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where scrapper=:scrapper order by pk_id desc limit :limit",
 			binds={"scrapper": scrapper_type.value, "limit": item_limit},
