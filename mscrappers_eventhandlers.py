@@ -91,6 +91,8 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 			exception_type=None,
 			exception_value=None
 		)
+		pk_id = self._repository.save_entity(self._entity_task_item, True)
+		self._entity_task_item.pk_id = pk_id
 
 	def on_item_progress(self, description: str) -> None:
 		# do nothing

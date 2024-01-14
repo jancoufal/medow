@@ -58,13 +58,16 @@ class Repository(RepositoryInterface):
 		stmt = f"INSERT INTO {table_name}({col_names}) values ({bind_names})"
 
 		def _exec_without_id_return(con: sqlite3.Connection):
+			self._logger.debug(f"SQL: {stmt}, entity: {entity_as_dict}")
 			con.execute(stmt, entity_as_dict)
 			con.commit()
 			return None
 
 		def _exec_with_id_return(cur: sqlite3.Cursor):
+			self._logger.debug(f"SQL: {stmt}, entity: {entity_as_dict}")
 			cur.execute(stmt, entity_as_dict)
 			last_id = cur.lastrowid
+			self._logger.debug(f"SQL: ...last_id: {last_id}")
 			cur.connection.commit()
 			return last_id
 
@@ -88,6 +91,7 @@ class Repository(RepositoryInterface):
 				**{"whr_pk_id": entity.pk_id}
 			}
 			stmt = f"update {table_name} set {stmt_set} where pk_id=:whr_pk_id"
+			self._logger.debug(f"SQL: {stmt}, WHR: {stmt_whr}")
 			conn.execute(stmt, stmt_whr)
 
 		self._logger.debug(f"Updating entity {entity.__class__.__name__}.")
