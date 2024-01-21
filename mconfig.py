@@ -51,6 +51,7 @@ class ConfigScrapperRoumen:
 @dataclass
 class ConfigScrappers:
 	storage_path: str
+	storage_path_for_static: str
 	roumen_kecy: ConfigScrapperRoumen
 	roumen_maso: ConfigScrapperRoumen
 
@@ -58,6 +59,7 @@ class ConfigScrappers:
 @dataclass
 class Config(YAMLWizard):
 	site_title: str
+	app_debug: bool
 	logger: ConfigLogger
 	server: ConfigServer
 	persistence: ConfigPersistence

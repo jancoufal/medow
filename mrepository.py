@@ -105,6 +105,14 @@ class Repository(RepositoryInterface):
 			lambda rs: MScrapTaskE(*rs)
 		).pop()
 
+	def read_recent_scrap_tasks_all(self, item_limit: int) -> List[MScrapTaskE]:
+		self._logger.debug(f"Reading entities 'MScrapTaskE' for all scrappers limited to {item_limit} items.")
+		return self._sqlite_api.read(
+			sql_stmt=f"select * from {_Tables.SCRAP_TASK.value} order by pk_id desc limit :limit",
+			binds={"limit": item_limit},
+			row_mapper=lambda rs: MScrapTaskE(*rs)
+		)
+
 	def read_recent_scrap_tasks(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
 		self._logger.debug(f"Reading entities 'MScrapTaskE' for scrapper '{scrapper_type.value}' limited to {item_limit} items.")
 		return self._sqlite_api.read(

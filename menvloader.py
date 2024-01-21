@@ -13,7 +13,7 @@ def load_env_file(file_name: str = ".env", logger: Logger = None):
 		for var_name, var_value in env_tuples:
 			if len(var_value) == 0:
 				_log(f"Unsetting environment variable '{var_name}'")
-				os.environ.pop(var_name)
+				os.environ.pop(var_name, None)
 			else:
 				_log(f"Setting environment variable '{var_name}' to '{var_value}'")
 				os.environ[var_name] = var_value

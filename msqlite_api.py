@@ -1,27 +1,29 @@
 import sqlite3
+from typing import Dict, Any
 from logging import Logger
 
 
 class SqliteApi(object):
-	def __init__(self, logger: Logger, sqlite_datafile: str, keep_connection_open: bool):
+	def __init__(self, logger: Logger, sqlite_datafile: str, keep_connection_open: bool, connect_extra_params: Dict[str, Any]) -> None:
 		self._logger = logger
 		self._logger_sql = logger.getChild("sql")
 		self.sqlite_datafile = sqlite_datafile
 		self._keep_connection_open = keep_connection_open
 		self._kept_connection = None
+		self._connect_extra_params = connect_extra_params
 
 	@classmethod
 	def create_persistent(cls, logger: Logger, sqlite_datafile: str):
-		return cls(logger, sqlite_datafile, False)
+		return cls(logger, sqlite_datafile, False, {})
 
 	@classmethod
 	def create_in_memory(cls, logger: Logger):
-		return cls(logger, "file::memory:", True)
+		return cls(logger, "file::memory:", True, {"check_same_thread": False})
 
 	def _connection_open(self):
 		def _connection_open_impl():
 			self._logger.debug(f"Opening connection for '{self.sqlite_datafile}'.")
-			return sqlite3.connect(self.sqlite_datafile)
+			return sqlite3.connect(self.sqlite_datafile, **self._connect_extra_params)
 
 		if self._keep_connection_open and self._kept_connection is None:
 			self._kept_connection = _connection_open_impl()

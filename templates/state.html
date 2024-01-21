@@ -3,9 +3,20 @@
 
 {% block content %}
 <h2>App state</h2>
+<ul class="">
+	{%- for repository_type in page_data.state.repositories -%}
+		{%- if page_data.state.active_repository == repository_type -%}
+	<li><a class="selected" href="{{ page_data.state.repositories[repository_type] }}">{{ repository_type }}</a></li>
+		{%- else -%}
+	<li><a href="{{ page_data.state.repositories[repository_type] }}">{{ repository_type }}</a></li>
+		{%- endif -%}
+	{% endfor %}
+</ul>
 <dl class="app-state">
 	<dt>Uptime:</dt>
 	<dd>{{ page_data.state.uptime }}</dd>
+
+{%- if page_data.state.page_view_mode == 'task_overview' -%}
 	<dt>Last tasks:</dt>
 	<dd>
 		<table class="scrap-results">
@@ -15,19 +26,56 @@
 				<th>State</th>
 				<th>Age</th>
 				<th>Time Taken</th>
-				<th>Description</th>
+				<th>Items succ/fail</th>
+				<th>Error type</th>
+				<th>Error message</th>
 			</tr>
-			{%- for task_id in page_data.state.tasks.keys()|reverse -%}
-			<tr class="state-{{ page_data.state.tasks[task_id].state.value }}">
-				<td>{{ page_data.state.tasks[task_id].id }}</td>
-				<td style="white-space: pre;">{{ page_data.state.tasks[task_id].name }}</td>
-				<td>{{ page_data.state.tasks[task_id].state.value }}</td>
-				<td style="white-space: pre;">{{ page_data.state.tasks[task_id].age }}</td>
-				<td style="white-space: pre;">{{ page_data.state.tasks[task_id].time_taken }}</td>
-				<td>{{ page_data.state.tasks[task_id].result }}</td>
+			{%- for task in page_data.state.tasks -%}
+			<tr class="state-{{ task.status }}">
+				<td><a href="{{- page_data.state.task_detail_link_base ~ task.pk_id ~ '/' -}}">{{ task.pk_id }}</a></td>
+				<td style="white-space: nowrap;">{{ task.scrapper }}</td>
+				<td>{{ task.status }}</td>
+				<td style="white-space: nowrap;">{{ task.age }}</td>
+				<td style="white-space: nowrap;">{{ task.time_taken }}</td>
+				<td style="white-space: nowrap;">
+					<span class="success_count">{{ task.item_count_success }}</span>
+					/ <span class="fail_count">{{ task.item_count_fail }}</span>
+					~ <span class="succcess_percent">{{ task.success_percentage }}</span>
+				</td>
+				<td>{{ task.exception_type }}</td>
+				<td>{{ task.exception_value }}</td>
 			</tr>
 			{% endfor %}
 		</table>
 	</dd>
+{%- elif page_data.state.page_view_mode == 'task_detail' -%}
+	<dt>Task #{{ page_data.state.task.pk_id }} ({{ page_data.state.task.scrapper }} ~ {{ page_data.state.task.success_percentage }}) details:</dt>
+	<dd>
+		<table class="scrap-results">
+			<tr>
+				<th>#id</th>
+				<th>State</th>
+				<th>Age</th>
+				<th>Time taken</th>
+				<th>Item name</th>
+				<th>Local path</th>
+				<th>Error type</th>
+				<th>Error message</th>
+			</tr>
+			{%- for task_item in page_data.state.task_items|reverse -%}
+			<tr class="state-{{ task_item.status }}">
+				<td>{{ task_item.pk_id }}</td>
+				<td>{{ task_item.status }}</td>
+				<td style="white-space: nowrap;">{{ task_item.age }}</td>
+				<td style="white-space: nowrap;">{{ task_item.time_taken }}</td>
+				<td>{{ task_item.item_name }}</td>
+				<td>{{ task_item.locla_path }}</td>
+				<td>{{ task_item.exception_type }}</td>
+				<td>{{ task_item.exception_value }}</td>
+			</tr>
+			{% endfor %}
+		</table>
+	</dd>
+{%- endif -%}
 </dl>
 {% endblock %}

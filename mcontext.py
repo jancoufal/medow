@@ -1,6 +1,8 @@
 from dataclasses import dataclass
 from logging import Logger, basicConfig, getLogger
 from typing import Callable
+from datetime import datetime
+from enum import Enum
 
 from flask import Flask
 
@@ -10,11 +12,18 @@ from mrepository_installer import RepositoryInstaller
 from mscrappertaskfactory import TaskFactory
 from msqlite_api import SqliteApi
 from mtaskprocessing import TaskProcessor
+from mformatters import Formatter
+
+
+class AppRepositoryType(Enum):
+	IN_MEMORY = "in-memory"
+	PERSISTENT = "persistent"
 
 
 @dataclass
 class AppContext(object):
 	app: Flask
+	start_time: datetime
 	logger: Logger
 	config: Config
 	repository_persistent: Repository
@@ -41,12 +50,12 @@ class AppContext(object):
 			return Repository(repository_logger.getChild("repository"), creator(repository_logger.getChild("sqlapi")))
 
 		repository_persistent = create_repository(
-			logger.getChild("persistent"),
+			logger.getChild(AppRepositoryType.PERSISTENT.value),
 			lambda _logger: SqliteApi.create_persistent(_logger, config.persistence.sqlite_datafile)
 		)
 
 		repository_in_memory = create_repository(
-			logger.getChild("in_memory"),
+			logger.getChild(AppRepositoryType.IN_MEMORY.value),
 			lambda _logger: SqliteApi.create_in_memory(_logger)
 		)
 
@@ -55,6 +64,7 @@ class AppContext(object):
 
 		return cls(
 			app=flask_app,
+			start_time=datetime.now(),
 			logger=logger,
 			config=config,
 			repository_persistent=repository_persistent,
@@ -62,3 +72,7 @@ class AppContext(object):
 			task_factory=TaskFactory(logger.getChild("task"), config, repository_persistent, repository_in_memory),
 			task_processor=TaskProcessor(logger.getChild("queue"), config.worker_thread),
 		)
+
+	@property
+	def uptime(self):
+		return Formatter.ts_diff_to_str(self.start_time, datetime.now(), False)
