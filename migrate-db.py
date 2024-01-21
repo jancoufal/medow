@@ -1,3 +1,5 @@
+import logging
+from logging import Logger, basicConfig
 import sqlite3
 from dataclasses import dataclass
 from typing import List
@@ -55,8 +57,8 @@ class IBData:
 	fails: List[IBScrapFail]
 
 	@classmethod
-	def load_from_datafile(cls, datafile_path: str):
-		api = SqliteApi(datafile_path)
+	def load_from_datafile(cls, logger: Logger, datafile_path: str):
+		api = SqliteApi(logger, datafile_path, False)
 
 		return IBData(
 			stat=api.read("select * from scrap_stat order by scrap_stat_id", {}, lambda r: IBScrapStat(*r)),
@@ -94,14 +96,17 @@ class MScrapTaskItemE:
 
 
 def migrate():
+	basicConfig(level=logging.CRITICAL)
+	logger = logging.getLogger()
+
 	print("Loading data from source DB...")
-	src_data = IBData.load_from_datafile("sql/image_box.sqlite3")
+	src_data = IBData.load_from_datafile(logger, "sql/image_box.sqlite3")
 
 	print("Opening destination DB...")
-	dst_db = SqliteApi("sql/medow.sqlite3")
+	dst_db = SqliteApi(logger,"sql/medow.sqlite3", False)
 
 	print("Initializing repository...")
-	repository = Repository(dst_db)
+	repository = Repository(logger, dst_db)
 
 	def drop_tables(c: sqlite3.Cursor):
 		c.execute("DROP TABLE IF EXISTS scrap_task")
@@ -146,10 +151,15 @@ def migrate():
 
 	print("Migrating scrap tasks...")
 	tasks = []
+	source_map = {
+		"roumen": "roumen_kecy",
+		"roumen-maso": "roumen_maso"
+	}
+
 	for r in src_data.stat:
 		tasks.append(MScrapTaskE(
 			pk_id=r.scrap_stat_id,
-			scrapper=r.source,
+			scrapper=source_map[r.source],
 			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
 			ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
 			status=r.status,

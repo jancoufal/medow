@@ -41,17 +41,18 @@ class ConfigListingLimits:
 
 
 @dataclass
-class ConfigStorage:
-	source_static: str
-	yt_dl: str
-
-
-@dataclass
-class ConfigScrapperSettings:
+class ConfigScrapperRoumen:
 	base_url: str
 	img_base: str
 	href_needle: str
 	url_params: Dict[str, str] = field(default_factory=dict)
+
+
+@dataclass
+class ConfigScrappers:
+	storage_path: str
+	roumen_kecy: ConfigScrapperRoumen
+	roumen_maso: ConfigScrapperRoumen
 
 
 @dataclass
@@ -63,5 +64,4 @@ class Config(YAMLWizard):
 	repository_limits: ConfigRepositoryLimits
 	listing_limits: ConfigListingLimits
 	worker_thread: ConfigWorkerThread
-	scrappers: Dict[str, ConfigScrapperSettings]
-	storage: ConfigStorage
+	scrappers: ConfigScrappers

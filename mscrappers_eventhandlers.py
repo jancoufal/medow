@@ -108,7 +108,7 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 	def on_item_error(self, ex: Exception) -> None:
 		self._entity_task_item.status = TaskStatusEnum.ERROR.value
 		self._entity_task_item.ts_end = ScrapperEventRepositoryWriter._get_current_timestamp()
-		self._entity_task.exception_type = ex.__class__.__name__
-		self._entity_task.exception_value = str(ex)
+		self._entity_task_item.exception_type = ex.__class__.__name__
+		self._entity_task_item.exception_value = str(ex)
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_fail += 1

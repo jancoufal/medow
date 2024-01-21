@@ -19,7 +19,8 @@ listing_limits:
 worker_thread:
   max_workers: 1
 scrappers:
-  roumen:
+  storage_path: "static/scrap/"
+  roumen_kecy:
     base_url: "https://www.rouming.cz"
     img_base: "https://www.rouming.cz/upload"
     href_needle: "roumingShow.php"
@@ -30,6 +31,3 @@ scrappers:
     href_needle: "masoShow.php"
     url_params:
       agree: "on"
-storage:
-  source_static: "images/"
-  yt_dl: "yt_dl/"

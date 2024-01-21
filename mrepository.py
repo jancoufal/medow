@@ -121,10 +121,10 @@ class Repository(RepositoryInterface):
 			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)
 
-	def read_recent_scrap_task_items(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
+	def read_recent_scrap_task_items(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskItemE]:
 		self._logger.debug(f"Reading recent entities 'MScrapTaskE' for scrapper '{scrapper_type.value}' limited to {item_limit} items.")
 		return self._sqlite_api.read(
-			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where scrapper=:scrapper order by pk_id desc limit :limit",
+			sql_stmt=f"select sti.* from {_Tables.SCRAP_TASK.value} st inner join {_Tables.SCRAP_TASK_ITEM.value} sti on sti.task_id=st.pk_id where st.scrapper=:scrapper order by sti.pk_id desc limit :limit",
 			binds={"scrapper": scrapper_type.value, "limit": item_limit},
-			row_mapper=lambda rs: MScrapTaskE(*rs)
+			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)

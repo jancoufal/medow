@@ -10,7 +10,7 @@ import time
 
 from mconfig import ConfigWorkerThread
 from mformatters import Formatter
-from mscrapsources import ScrapSource
+from mscrappers_api import ScrapperType
 import youtube_dl.youtube_dl as youtube_dl
 
 
@@ -46,12 +46,12 @@ class TaskProcessor(object):
 
 		return task
 
-	def create_and_process_new_task_for_source(self, scrap_source: ScrapSource) -> "TaskScrapSource":
+	def create_and_process_new_task_for_source(self, scrapper_type: ScrapperType) -> "TaskScrapSource":
 		task = TaskScrapSource(
 			logger=self._l.getChild("task"),
 			task_id=self._get_next_task_id(),
 			update_task_callback=self._update_task_state,
-			scrap_source=scrap_source,
+			scrapper_type=scrapper_type,
 		)
 
 		self._executor.submit(task)
@@ -143,9 +143,9 @@ class TaskDummy(_TaskBase):
 
 
 class TaskScrapSource(_TaskBase):
-	def __init__(self, logger: Logger, task_id: int, update_task_callback: Callable[[TaskState], None], scrap_source: ScrapSource):
-		super().__init__(logger, task_id, scrap_source.name, update_task_callback)
-		self._source = scrap_source
+	def __init__(self, logger: Logger, task_id: int, update_task_callback: Callable[[TaskState], None], scrapper_type: ScrapperType):
+		super().__init__(logger, task_id, scrapper_type.name, update_task_callback)
+		self._source = scrapper_type
 		self.on_new(f"Scrap task for '{self._source.value}' enqueued.")
 
 	def __call__(self):
