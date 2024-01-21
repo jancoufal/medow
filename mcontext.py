@@ -3,6 +3,7 @@ from logging import Logger, basicConfig, getLogger
 from typing import Callable
 from datetime import datetime
 from enum import Enum
+from concurrent.futures import ThreadPoolExecutor
 
 from flask import Flask
 
@@ -11,7 +12,6 @@ from mrepository import Repository
 from mrepository_installer import RepositoryInstaller
 from mscrappertaskfactory import TaskFactory
 from msqlite_api import SqliteApi
-from mtaskprocessing import TaskProcessor
 from mformatters import Formatter
 
 
@@ -29,7 +29,7 @@ class AppContext(object):
 	repository_persistent: Repository
 	repository_in_memory: Repository
 	task_factory: TaskFactory
-	task_processor: TaskProcessor
+	task_executor: ThreadPoolExecutor
 
 	@classmethod
 	def create(cls, flask_app: Flask, config_file: str):
@@ -70,7 +70,7 @@ class AppContext(object):
 			repository_persistent=repository_persistent,
 			repository_in_memory=repository_in_memory,
 			task_factory=TaskFactory(logger.getChild("task"), config, repository_persistent, repository_in_memory),
-			task_processor=TaskProcessor(logger.getChild("queue"), config.worker_thread),
+			task_executor=ThreadPoolExecutor(max_workers=config.worker_thread.max_workers),
 		)
 
 	@property

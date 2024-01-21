@@ -1,17 +1,13 @@
-import logging
-import os
 import socket
 import sys
 import traceback
-from pathlib import Path
 from enum import Enum
-from http import HTTPStatus
 
-from flask import Flask, url_for, render_template, request, redirect
+from flask import Flask, url_for, render_template, request
 
+import menvloader
 from mcontext import AppRepositoryType, AppContext
 from mscrappers_api import ScrapperType
-import menvloader
 
 CONFIG_FILE = "config.yaml"
 app = Flask(__name__)
