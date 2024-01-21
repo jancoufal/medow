@@ -61,7 +61,7 @@ class TaskFactory(object):
 		return TaskYoutubeDownload(
 			self._create_event_handler(scrapper_type),
 			self._logger.getChild(scrapper_type.value),
-			f"{self._config.scrappers.storage_path}yt_dl/",
+			f"{self._config.scrappers.storage_path}",
 			urls
 		)
 
@@ -202,6 +202,7 @@ class TaskYoutubeDownload(object):
 		self._urls = [url.strip() for url in urls if len(url.strip()) > 0]
 		self._storage_directory = storage_directory
 		self._event.on_new()
+		self._local_path = None
 
 	def __call__(self):
 		self._event.on_start()
@@ -212,7 +213,7 @@ class TaskYoutubeDownload(object):
 				"cachedir": False,
 				"call_home": False,
 				"no_color": True,
-				"outtmpl": f"{self._storage_directory}/%(title)s-%(id)s.%(ext)s",
+				"outtmpl": f"{self._storage_directory}{ScrapperType.YOUTUBE_DL.value}/%(title)s-%(id)s.%(ext)s",
 				"logger": _YoutubeLogger(self._yt_logger),
 				"progress_hooks": [self._progress_hook],
 				"http_headers": {
@@ -227,7 +228,7 @@ class TaskYoutubeDownload(object):
 					with YoutubeDL(ydl_opts) as ydl:
 						ydl.download([url])
 
-					self._event.on_item_finish(None)  # TODO: local path
+					self._event.on_item_finish(self._local_path)
 
 				except Exception as ex:
 					self._event.on_item_error(ex)
@@ -247,5 +248,9 @@ class TaskYoutubeDownload(object):
 				f" progress: {info.get('_percent_str', 'n/a').strip()},"
 				f" speed: {info.get('_speed_str', 'n/a').strip()}"
 			)
+
+			if self._local_path is None and info.get("filename", None) is not None:
+				self._local_path = info.get("filename").removeprefix(self._storage_directory)
+
 		except Exception as ex:
 			self._event.on_item_progress(f"Exception {ex}.")

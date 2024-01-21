@@ -138,7 +138,9 @@ def page_scrap():
 				GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing 'Sync to FTP/NAS' task.")
 				# GLOBAL_APP_CONTEXT.task_executor.submit(TaskDummy(GLOBAL_APP_CONTEXT, "NAS", "Wake-up"))
 
-		# page_data["scrapper_results"] = {s: scrap(s) for s in scrappers.Source if s is not scrappers.Source.NOOP}
+		for task in tasks:
+			GLOBAL_APP_CONTEXT.task_executor.submit(task)
+
 	except Exception as ex:
 		return render_exception_page(ex, page_data=page_data)
 
