@@ -15,7 +15,7 @@ repository_limits:
   select_max: 1000
   select_fallback: 10
 listing_limits:
-  images: 200
+  images: 125
   scraps: 1000
 worker_thread:
   max_workers: 1

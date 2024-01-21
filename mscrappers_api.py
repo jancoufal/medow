@@ -7,8 +7,8 @@ class ScrapperType(Enum):
 	NOOP = "noop"
 	DUMMY = "dummy"
 	YOUTUBE_DL = "youtube_dl"
-	ROUMEN = "roumen"
-	ROUMEN_MASO = "roumen-maso"
+	ROUMEN_KECY = "roumen_kecy"
+	ROUMEN_MASO = "roumen_maso"
 
 	@staticmethod
 	def of(scrapper_type: str) -> "ScrapperType":

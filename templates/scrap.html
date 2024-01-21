@@ -18,8 +18,8 @@
 				<ul class="sources-list">
 					{%- for source in page_data.sources -%}
 						<li>
-							<input type="checkbox" id="source-{{ source.name }}" name="source-{{ source.name }}" checked="checked" />
-							<label for="source-{{ source.name }}">{{ source.value }}</label>
+							<input type="checkbox" id="source-{{ source.value }}" name="source-{{ source.value }}" checked="checked" />
+							<label for="source-{{ source.value }}">{{ source.value }}</label>
 						</li>
 					{%- endfor -%}
 				</ul>
@@ -51,8 +51,8 @@
 	<div class="input-row">
 		<form method="POST">
 			<fieldset>
-				<label for="nas-submit">NAS</label>
-				<button name="form" id="nas-submit" type="submit" value="nas">Wake-up NAS</button>
+				<label for="ftp-sync">FTP/NAS</label>
+				<button name="form" id="ftp-sync" type="submit" value="ftp">Sync to FTP/NAS</button>
 			</fieldset>
 		</form>
 	</div>

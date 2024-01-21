@@ -3,19 +3,17 @@
 
 {% block content %}
 <div id="image-list">
-
-	{% for image in page_data.images %}
+	{%- for item in page_data.task_items %}
 	<div class="image-view">
 		<div class="image-view-header">
 			<span class="image-scrap-info" data-tooltip-location="right" data-tooltip="item info:
-date: {{ image.datetime }}
-age: {{image.age}}">&#9432;</span>
-			<span class="image-scrap-name">name: <span class="image-scrap-name-value">{{ image.name }}</span></span>
+date: {{ item.start_as_timestamp }}
+age: {{ item.age }}">&#9432;</span>
+			<span class="image-scrap-name">name: <span class="image-scrap-name-value">{{ item.item_name }}</span></span>
 			<span class="image-scrap-cleaner"></span>
 		</div>
-		<img src="{{ page_data.current.image_dir + '/' + image.local_path }}" />
+		<img src="{{ page_data.base_path + item.local_path }}" />
 	</div>
-	{% endfor %}
-
+	{% endfor -%}
 </div>
 {% endblock %}
