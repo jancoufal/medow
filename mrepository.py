@@ -136,3 +136,12 @@ class Repository(RepositoryInterface):
 			binds={"scrapper": scrapper_type.value, "limit": item_limit},
 			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)
+
+	def read_task_items_unsynced(self, scrapper_type: ScrapperType) -> List[MScrapTaskItemE]:
+		self._logger.debug(f"Reading unsynced entities 'MScrapTaskE' for scrapper '{scrapper_type.value}'.")
+		return self._sqlite_api.read(
+			sql_stmt=f"select sti.* from {_Tables.SCRAP_TASK.value} st inner join {_Tables.SCRAP_TASK_ITEM.value} sti on sti.task_id=st.pk_id where st.scrapper=:scrapper and sync_status=:sync_status order by sti.pk_id desc",
+			binds={"scrapper": scrapper_type.value, "sync_status": TaskSyncStatusEnum.NOT_STARTED.value},
+			row_mapper=lambda rs: MScrapTaskItemE(*rs)
+		)
+

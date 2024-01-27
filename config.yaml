@@ -33,3 +33,8 @@ scrappers:
     href_needle: "masoShow.php"
     url_params:
       agree: "on"
+ftp:
+  host: 192.168.1.103
+  port: 21
+  user: medow
+  password: PiG[ox

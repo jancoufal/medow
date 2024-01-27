@@ -10,7 +10,7 @@ import requests
 from youtube_dl.youtube_dl import YoutubeDL
 import bs4
 
-from mconfig import Config, ConfigScrapperRoumen
+from mconfig import Config, ConfigScrapperRoumen, ConfigFtp
 from mrepository import Repository
 from mscrappers_api import ScrapperType, ScrapperEvents, ScrapperEventDispatcher
 from mscrappers_eventhandlers import ScrapperEventLogger, ScrapperEventRepositoryWriter
@@ -63,6 +63,13 @@ class TaskFactory(object):
 			self._logger.getChild(scrapper_type.value),
 			f"{self._config.scrappers.storage_path}",
 			urls
+		)
+
+	def create_task_sync(self, scrapper_type: ScrapperType):
+		return SyncToFtp(
+			scrapper_type,
+			self._repository_persistent,
+			self._config.ftp
 		)
 
 
@@ -254,3 +261,21 @@ class TaskYoutubeDownload(object):
 
 		except Exception as ex:
 			self._event.on_item_progress(f"Exception {ex}.")
+
+
+"""
+	SYNC TASK
+"""
+
+
+class SyncToFtp(object):
+	def __init__(self, scrapper_type: ScrapperType, repository: Repository, ftp: ConfigFtp):
+		self._scrapper_type = scrapper_type
+		self._repository = repository
+		self._ftp = ftp
+
+	def __call__(self):
+		pass
+
+	def _get_items_to_sync(self):
+		self._repository.read_recent_scrap_tasks()
