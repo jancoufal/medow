@@ -13,8 +13,8 @@ import bs4
 from mconfig import Config, ConfigScrapperRoumen, ConfigFtp
 from mrepository import Repository
 from mrepository_entities import TaskClassAndType, TaskClass, TaskType
-from mscrappers_api import ScrapperEvents, ScrapperEventDispatcher
-from mscrappers_eventhandlers import ScrapperEventLogger, ScrapperEventRepositoryWriter
+from mscrappers_api import TaskEvents, TaskEventDispatcher
+from mscrappers_eventhandlers import TaskEventLogger, TaskEventRepositoryWriter
 from mformatters import Formatter
 
 
@@ -26,10 +26,10 @@ class TaskFactory(object):
 		self._repository_in_memory = repository_in_memory
 
 	def _create_event_handler(self, task_def: TaskClassAndType):
-		return ScrapperEventDispatcher((
-			ScrapperEventLogger(self._logger.getChild("event"), task_def),
-			ScrapperEventRepositoryWriter(self._repository_in_memory, task_def),
-			ScrapperEventRepositoryWriter(self._repository_persistent, task_def),
+		return TaskEventDispatcher((
+			TaskEventLogger(self._logger.getChild("event"), task_def),
+			TaskEventRepositoryWriter(self._repository_in_memory, task_def),
+			TaskEventRepositoryWriter(self._repository_persistent, task_def),
 		))
 
 	def create_task_dummy(self, description: str):
@@ -67,9 +67,10 @@ class TaskFactory(object):
 			urls
 		)
 
-	def create_task_sync(self, task_type: TaskType):
+	def create_task_ftp_sync(self, task_type: TaskType):
 		task_def = TaskClassAndType(TaskClass.SYNC, task_type)
 		return SyncToFtp(
+			self._create_event_handler(task_def),
 			self._logger.getChild(str(task_def)),
 			task_def,
 			self._repository_persistent,
@@ -83,7 +84,7 @@ class TaskFactory(object):
 
 
 class _TaskDummy(object):
-	def __init__(self, scrapper_event_handler: ScrapperEvents, description: str):
+	def __init__(self, scrapper_event_handler: TaskEvents, description: str):
 		self._event = scrapper_event_handler
 		self._description = description
 		self._event.on_new()
@@ -115,14 +116,14 @@ class TaskRoumen(object):
 
 	def __init__(
 			self,
-			scrapper_event_handler: ScrapperEvents,
+			task_event_handler: TaskEvents,
 			logger: Logger,
 			task_def: TaskClassAndType,
 			config_scrapper: ConfigScrapperRoumen,
 			storage_dir: str,
 			repository: Repository
 	):
-		self._event = scrapper_event_handler
+		self._event = task_event_handler
 		self._logger = logger
 		self._task_def = task_def
 		self._config_scrapper = config_scrapper
@@ -206,8 +207,8 @@ class _YoutubeLogger(object):
 
 
 class TaskYoutubeDownload(object):
-	def __init__(self, scrapper_event_handler: ScrapperEvents, yt_logger: Logger, storage_directory: str, urls: Tuple[str, ...]):
-		self._event = scrapper_event_handler
+	def __init__(self, task_event_handler: TaskEvents, yt_logger: Logger, storage_directory: str, urls: Tuple[str, ...]):
+		self._event = task_event_handler
 		self._yt_logger = yt_logger
 		self._urls = [url.strip() for url in urls if len(url.strip()) > 0]
 		self._storage_directory = storage_directory
@@ -273,11 +274,19 @@ class TaskYoutubeDownload(object):
 
 
 class SyncToFtp(object):
-	def __init__(self, logger: Logger, task_def: TaskClassAndType, repository: Repository, ftp: ConfigFtp):
+	def __init__(
+			self,
+			task_event_handler: TaskEvents,
+			logger: Logger,
+			task_def: TaskClassAndType,
+			repository: Repository,
+			ftp_config: ConfigFtp
+	):
+		self._event = task_event_handler,
 		self._logger = logger
 		self._task_def = task_def
 		self._repository = repository
-		self._ftp = ftp
+		self._ftp_config = ftp_config
 
 	def __call__(self):
 		pass

@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Tuple
 
 
-class ScrapperEvents(ABC):
+class TaskEvents(ABC):
 	@abstractmethod
 	def on_new(self) -> None:
 		pass
@@ -20,7 +20,7 @@ class ScrapperEvents(ABC):
 		pass
 
 	@abstractmethod
-	def on_item_start(self, item_name: str) -> None:
+	def on_item_start(self, item_name: str, ref_id: int | None = None) -> None:
 		pass
 
 	@abstractmethod
@@ -36,8 +36,8 @@ class ScrapperEvents(ABC):
 		pass
 
 
-class ScrapperEventDispatcher(ScrapperEvents):
-	def __init__(self, event_handlers: Tuple[ScrapperEvents, ...]):
+class TaskEventDispatcher(TaskEvents):
+	def __init__(self, event_handlers: Tuple[TaskEvents, ...]):
 		self._event_handlers = tuple(event_handlers)
 
 	def __str__(self):
@@ -59,9 +59,9 @@ class ScrapperEventDispatcher(ScrapperEvents):
 		for event_handler in self._event_handlers:
 			event_handler.on_error(ex)
 
-	def on_item_start(self, item_name: str) -> None:
+	def on_item_start(self, item_name: str, ref_id: int | None = None) -> None:
 		for event_handler in self._event_handlers:
-			event_handler.on_item_start(item_name)
+			event_handler.on_item_start(item_name, ref_id)
 
 	def on_item_progress(self, description: str) -> None:
 		for event_handler in self._event_handlers:

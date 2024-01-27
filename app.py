@@ -141,8 +141,7 @@ def page_scrap():
 					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_youtube_dl(urls))
 
 			case ("POST", "ftp"):
-				GLOBAL_APP_CONTEXT.logger.debug(f"Enqueueing 'Sync to FTP/NAS' task.")
-				# GLOBAL_APP_CONTEXT.task_executor.submit(TaskDummy(GLOBAL_APP_CONTEXT, "NAS", "Wake-up"))
+				tasks.extend([GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType])
 
 		for task in tasks:
 			GLOBAL_APP_CONTEXT.task_executor.submit(task)
@@ -154,13 +153,13 @@ def page_scrap():
 
 
 @app.route("/view/<view_source>/")
-def page_view(view_source: ViewSources):
-	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"view-source": view_source})
+def page_view(view_source: str):
+	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"view_source": view_source})
 	try:
 		match view_source:
-			case ViewSources.ROUMEN_KECY: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_KECY)
-			case ViewSources.ROUMEN_MASO: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
-			case _: raise ValueError(f"Invalid view type {view_source}")
+			case ViewSources.ROUMEN_KECY.value: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_KECY)
+			case ViewSources.ROUMEN_MASO.value: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
+			case _: raise ValueError(f"Invalid view type '{view_source}'.")
 
 		items_limit = 3 + 0 * GLOBAL_APP_CONTEXT.config.listing_limits.images
 

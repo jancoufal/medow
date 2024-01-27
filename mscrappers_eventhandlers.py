@@ -4,11 +4,11 @@ from mformatters import Formatter, TimestampFormat
 from mrepository import Repository
 from mrepository_entities import MScrapTaskE, TaskStatusEnum, MScrapTaskItemE
 
-from mscrappers_api import ScrapperEvents
+from mscrappers_api import TaskEvents
 from mrepository_entities import TaskClassAndType
 
 
-class ScrapperEventLogger(ScrapperEvents):
+class TaskEventLogger(TaskEvents):
 	def __init__(self, logger: Logger, task_def: TaskClassAndType):
 		self._l = logger.getChild(str(task_def))
 
@@ -24,8 +24,8 @@ class ScrapperEventLogger(ScrapperEvents):
 	def on_error(self, ex: Exception) -> None:
 		self._l.error(f"Task error: {ex!s}.")
 
-	def on_item_start(self, item_name: str) -> None:
-		self._l.info(f"Item '{item_name}' started.")
+	def on_item_start(self, item_name: str, ref_id: int | None = None) -> None:
+		self._l.info(f"Item '{item_name}' started (ref_id: {ref_id}).")
 
 	def on_item_progress(self, description: str) -> None:
 		self._l.debug(f"Item progress: {description}.")
@@ -37,7 +37,7 @@ class ScrapperEventLogger(ScrapperEvents):
 		self._l.error(f"Item error: {ex!s}.")
 
 
-class ScrapperEventRepositoryWriter(ScrapperEvents):
+class TaskEventRepositoryWriter(TaskEvents):
 	def __init__(self, repository: Repository, task_def: TaskClassAndType):
 		self._repository = repository
 		self._task_def = task_def
@@ -54,7 +54,7 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 			ref_id=None,
 			task_class=self._task_def.cls.value,
 			task_type=self._task_def.typ.value,
-			ts_start=ScrapperEventRepositoryWriter._get_current_timestamp(),
+			ts_start=TaskEventRepositoryWriter._get_current_timestamp(),
 			ts_end=None,
 			status=TaskStatusEnum.CREATED.value,
 			item_count_fail=0,
@@ -67,27 +67,27 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 
 	def on_start(self) -> None:
 		self._entity_task.status = TaskStatusEnum.RUNNING.value
-		self._entity_task.ts_start = ScrapperEventRepositoryWriter._get_current_timestamp()
+		self._entity_task.ts_start = TaskEventRepositoryWriter._get_current_timestamp()
 		self._repository.update_entity(self._entity_task)
 
 	def on_finish(self) -> None:
 		self._entity_task.status = TaskStatusEnum.COMPLETED.value
-		self._entity_task.ts_end = ScrapperEventRepositoryWriter._get_current_timestamp()
+		self._entity_task.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._repository.update_entity(self._entity_task)
 
 	def on_error(self, ex: Exception) -> None:
 		self._entity_task.status = TaskStatusEnum.ERROR.value
-		self._entity_task.ts_end = ScrapperEventRepositoryWriter._get_current_timestamp()
+		self._entity_task.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task.exception_type = ex.__class__.__name__
 		self._entity_task.exception_value = str(ex)
 		self._repository.update_entity(self._entity_task)
 
-	def on_item_start(self, item_name: str) -> None:
+	def on_item_start(self, item_name: str, ref_id: int | None = None) -> None:
 		self._entity_task_item = MScrapTaskItemE(
 			pk_id=None,
-			ref_id=None,
+			ref_id=ref_id,
 			task_id=self._entity_task.pk_id,
-			ts_start=ScrapperEventRepositoryWriter._get_current_timestamp(),
+			ts_start=TaskEventRepositoryWriter._get_current_timestamp(),
 			ts_end=None,
 			status=TaskStatusEnum.RUNNING.value,
 			item_name=item_name,
@@ -104,14 +104,14 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 
 	def on_item_finish(self, local_path: str | None) -> None:
 		self._entity_task_item.status = TaskStatusEnum.COMPLETED.value
-		self._entity_task_item.ts_end = ScrapperEventRepositoryWriter._get_current_timestamp()
+		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.local_path = local_path
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_success += 1
 
 	def on_item_error(self, ex: Exception) -> None:
 		self._entity_task_item.status = TaskStatusEnum.ERROR.value
-		self._entity_task_item.ts_end = ScrapperEventRepositoryWriter._get_current_timestamp()
+		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.exception_type = ex.__class__.__name__
 		self._entity_task_item.exception_value = str(ex)
 		self._repository.update_entity(self._entity_task_item)
