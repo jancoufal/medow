@@ -43,6 +43,7 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 			{"name": HtmlEntitySymbol.STATE.value, "href": url_for("page_state", repository=AppRepositoryType.IN_MEMORY.value), },
 			# {"name": HtmlEntitySymbol.STATS.value, "href": url_for("page_stats"), },
 			{"name": HtmlEntitySymbol.SCRAP.value, "href": url_for("page_scrap"), },
+			{"name": "E", "href": url_for("page_throw_error"), },
 		],
 		"web_state": {
 			"uptime": ctx.uptime,
@@ -153,7 +154,7 @@ def page_view(source):
 	try:
 		items = GLOBAL_APP_CONTEXT.repository_persistent.read_recent_scrap_task_items(
 			ScrapperType.of(source),
-			GLOBAL_APP_CONTEXT.config.listing_limits.images
+			3 + 0 * GLOBAL_APP_CONTEXT.config.listing_limits.images
 		)
 
 		page_data.update({
@@ -163,6 +164,15 @@ def page_view(source):
 
 		return render_template("view.html", page_data=page_data)
 	except Exception as ex:
+		return render_exception_page(ex, page_data=page_data)
+
+
+@app.route("/throw_error")
+def page_throw_error():
+	page_data = get_page_data(GLOBAL_APP_CONTEXT)
+	try:
+		raise RuntimeError("I'm runtime error!")
+	except RuntimeError as ex:
 		return render_exception_page(ex, page_data=page_data)
 
 
@@ -178,17 +188,16 @@ def page_not_found(e):
 	return render_template('error.html', page_data=page_data), 404
 
 
-def render_exception_page(ex: Exception, page_data: dict, exc_info=None):
-	e = exc_info if exc_info is not None else sys.exc_info()
-	exception_info = {
+def render_exception_page(ex: Exception, page_data: dict):
+	page_data.update({
 		"exception": {
 			"endpoint": page_data["current"]["endpoint"],
-			"type": e[0],
-			"value": e[1],
-			"traceback": traceback.format_tb(e[2]),
+			"type": ex.__class__.__name__,
+			"value": str(ex),
+			"traceback": traceback.format_exception(ex),
 		}
-	}
-	return render_template("exception.html", page_data={**page_data, **exception_info})
+	})
+	return render_template("exception.html", page_data=page_data)
 
 
 if __name__ == "__main__":

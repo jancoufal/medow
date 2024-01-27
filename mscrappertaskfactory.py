@@ -166,14 +166,13 @@ class TaskRoumen(object):
 
 		# extract all "a" tags having "roumingShow.php" present in the "href"
 		all_urls = map(lambda a: urllib.parse.urlparse(a.get("href")), soup.find_all("a"))
-		all_show = [url for url in all_urls if isinstance(url.path,str) and self._config_scrapper.href_needle in url.path]
+		all_show = [url for url in all_urls if isinstance(url.path, str) and self._config_scrapper.href_needle in url.path]
 
 		# extract all "file" values from the query string
 		all_qstr = [urllib.parse.parse_qs(url.query) for url in all_show]
 		all_imgs = [qs.get("file").pop() for qs in all_qstr if "file" in qs]
 
 		return all_imgs
-
 
 
 """
@@ -205,6 +204,7 @@ class TaskYoutubeDownload(object):
 		self._local_path = None
 
 	def __call__(self):
+		ts = datetime.now()
 		self._event.on_start()
 
 		try:
@@ -213,7 +213,7 @@ class TaskYoutubeDownload(object):
 				"cachedir": False,
 				"call_home": False,
 				"no_color": True,
-				"outtmpl": f"{self._storage_directory}{ScrapperType.YOUTUBE_DL.value}/%(title)s-%(id)s.%(ext)s",
+				"outtmpl": f"{self._storage_directory}{ScrapperType.YOUTUBE_DL.value}/{ts:%Y}/{ts:%V}/%(title)s-%(id)s.%(ext)s",
 				"logger": _YoutubeLogger(self._yt_logger),
 				"progress_hooks": [self._progress_hook],
 				"http_headers": {

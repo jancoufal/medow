@@ -5,7 +5,8 @@ from dataclasses import dataclass
 from typing import List
 
 from mrepository import Repository
-from mrepositoryentities import MScrapTaskE, MScrapTaskItemE
+from mrepository_entities import MScrapTaskE, MScrapTaskItemE, TaskStatusEnum, TaskSyncStatusEnum
+from mscrappers_api import ScrapperType
 from msqlite_api import SqliteApi
 
 
@@ -58,41 +59,13 @@ class IBData:
 
 	@classmethod
 	def load_from_datafile(cls, logger: Logger, datafile_path: str):
-		api = SqliteApi(logger, datafile_path, False)
+		api = SqliteApi(logger, datafile_path, False, {})
 
 		return IBData(
 			stat=api.read("select * from scrap_stat order by scrap_stat_id", {}, lambda r: IBScrapStat(*r)),
 			items=api.read("select * from scrap_items order by scrap_item_id", {}, lambda r: IBScrapItem(*r)),
 			fails=api.read("select * from scrap_fails order by scrap_fail_id", {}, lambda r: IBScrapFail(*r)),
 		)
-
-
-"""
-@dataclass
-class MScrapTaskE:
-	pk_id: int | None
-	scrapper: str
-	ts_start: str
-	ts_end: str | None
-	status: str
-	item_count_success: int
-	item_count_fail: int
-	exception_type: str | None
-	exception_value: str | None
-
-
-@dataclass
-class MScrapTaskItemE:
-	pk_id: int | None
-	task_id: int
-	ts_start: str
-	ts_end: str | None
-	status: str
-	item_name: str
-	local_path: str | None
-	exception_type: str | None
-	exception_value: str | None
-"""
 
 
 def migrate():
@@ -103,7 +76,7 @@ def migrate():
 	src_data = IBData.load_from_datafile(logger, "sql/image_box.sqlite3")
 
 	print("Opening destination DB...")
-	dst_db = SqliteApi(logger,"sql/medow.sqlite3", False)
+	dst_db = SqliteApi(logger,"sql/medow.sqlite3", False, {})
 
 	print("Initializing repository...")
 	repository = Repository(logger, dst_db)
@@ -127,8 +100,10 @@ def migrate():
 			ts_start TEXT,
 			ts_end TEXT,
 			status TEXT,
+			sync_status TEXT,
 			item_count_success INTEGER,
 			item_count_fail INTEGER,
+			item_count_synced INTEGER,
 			exception_type TEXT,
 			exception_value TEXT
 		);""")
@@ -139,6 +114,7 @@ def migrate():
 			ts_start TEXT,
 			ts_end TEXT,
 			status TEXT,
+			sync_status TEXT,
 			item_name TEXT,
 			local_path TEXT,
 			exception_type TEXT,
@@ -152,8 +128,16 @@ def migrate():
 	print("Migrating scrap tasks...")
 	tasks = []
 	source_map = {
-		"roumen": "roumen_kecy",
-		"roumen-maso": "roumen_maso"
+		"roumen": ScrapperType.ROUMEN_KECY.value,
+		"roumen-maso": ScrapperType.ROUMEN_MASO.value,
+	}
+
+	error_map = {
+		"<class 'requests.exceptions.SSLError'>": "SSLError",
+		"<class 'requests.exceptions.ConnectionError'>": "ConnectionError",
+		"<class 'urllib.error.HTTPError'>": "HTTPError",
+		"<class 'NameError'>": "NameError",
+		"<class 'TypeError'>": "TypeError",
 	}
 
 	for r in src_data.stat:
@@ -163,9 +147,11 @@ def migrate():
 			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
 			ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
 			status=r.status,
+			sync_status=TaskSyncStatusEnum.NOT_STARTED.value,
 			item_count_success=r.count_success if r.count_success is not None else 0,
 			item_count_fail=r.count_fail if r.count_fail is not None else 0,
-			exception_type=r.exc_type,
+			item_count_synced=0,
+			exception_type=error_map[r.exc_type] if r.exc_type is not None else None,
 			exception_value=r.exc_value,
 		))
 	print(f"{len(tasks)} tasks read.")
@@ -187,7 +173,8 @@ def migrate():
 					task_id=task_id_map[r.scrap_stat_id],
 					ts_start=f"{r.ts_date} {r.ts_time}",
 					ts_end=None,
-					status="finished",
+					status=TaskStatusEnum.COMPLETED.value,
+					sync_status=TaskSyncStatusEnum.NOT_STARTED.value,
 					item_name=r.name,
 					local_path=r.local_path,
 					exception_type=None,
@@ -201,10 +188,11 @@ def migrate():
 					task_id=task_id_map[r.scrap_stat_id],
 					ts_start=f"{r.ts_date} {r.ts_time}",
 					ts_end=None,
-					status="failed",
+					status=TaskStatusEnum.ERROR.value,
+					sync_status=TaskSyncStatusEnum.NOT_STARTED.value,
 					item_name=r.item_name,
 					local_path=None,
-					exception_type=r.exc_type,
+					exception_type=error_map[r.exc_type],
 					exception_value=r.exc_value,
 				))
 		return task_items

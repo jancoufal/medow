@@ -24,17 +24,20 @@
 				<th>#id</th>
 				<th>Scrapper</th>
 				<th>State</th>
+				<th>Sync state</th>
 				<th>Age</th>
 				<th>Time Taken</th>
 				<th>Items succ/fail</th>
+				<th>Items synced</th>
 				<th>Error type</th>
-				<th>Error message</th>
+{#				<th>Error message</th>#}
 			</tr>
 			{%- for task in page_data.state.tasks -%}
 			<tr class="state-{{ task.status }}">
 				<td><a href="{{- page_data.state.task_detail_link_base ~ task.pk_id ~ '/' -}}">{{ task.pk_id }}</a></td>
 				<td style="white-space: nowrap;">{{ task.scrapper }}</td>
 				<td>{{ task.status }}</td>
+				<td>{{ task.sync_status }}</td>
 				<td style="white-space: nowrap;">{{ task.age }}</td>
 				<td style="white-space: nowrap;">{{ task.time_taken }}</td>
 				<td style="white-space: nowrap;">
@@ -42,14 +45,44 @@
 					/ <span class="fail_count">{{ task.item_count_fail }}</span>
 					~ <span class="succcess_percent">{{ task.success_percentage }}</span>
 				</td>
+				<td style="white-space: nowrap;">
+					<span class="success_count">{{ task.item_count_success }}</span>
+					/ <span class="sync_count">{{ task.item_count_synced }}</span>
+					~ <span class="sync_percent">{{ task.sync_percentage }}</span>
+				</td>
 				<td>{{ task.exception_type }}</td>
-				<td>{{ task.exception_value }}</td>
+{#				<td>{{ task.exception_value }}</td>#}
 			</tr>
 			{% endfor %}
 		</table>
 	</dd>
 {%- elif page_data.state.page_view_mode == 'task_detail' -%}
-	<dt>Task #{{ page_data.state.task.pk_id }} ({{ page_data.state.task.scrapper }} ~ {{ page_data.state.task.success_percentage }}) details:</dt>
+	<dt>Task header</dt>
+	<dd>
+		<table class="scrap-results">
+			<tr><th>#id</th><td>{{ page_data.state.task.pk_id }}</td></tr>
+			<tr><th>Scrapper</th><td style="white-space: nowrap;">{{ page_data.state.task.scrapper }}</td></tr>
+			<tr><th>State</th><td>{{ page_data.state.task.status }}</td></tr>
+			<tr><th>Sync state</th><td>{{ page_data.state.task.sync_status }}</td></tr>
+			<tr><th>Age</th><td style="white-space: nowrap;">{{ page_data.state.task.age }}</td></tr>
+			<tr><th>Time Taken</th><td style="white-space: nowrap;">{{ page_data.state.task.time_taken }}</td></tr>
+			<tr><th>Items succeeded/failed</th><td style="white-space: nowrap;">
+					<span class="success_count">{{ page_data.state.task.item_count_success }}</span>
+					/ <span class="fail_count">{{ page_data.state.task.item_count_fail }}</span>
+					~ <span class="succcess_percent">{{ page_data.state.task.success_percentage }}</span>
+				</td>
+			</tr>
+			<tr><th>Items synced</th><td style="white-space: nowrap;">
+					<span class="success_count">{{ page_data.state.task.item_count_success }}</span>
+					/ <span class="sync_count">{{ page_data.state.task.item_count_synced }}</span>
+					~ <span class="sync_percent">{{ page_data.state.task.sync_percentage }}</span>
+				</td>
+			</tr>
+			<tr><th>Error type</th><td>{{ page_data.state.task.exception_type }}</td></tr>
+			<tr><th>Error message</th><td>{{ page_data.state.task.exception_value }}</td></tr>
+		</table>
+	</dd>
+	<dt>Items</dt>
 	<dd>
 		<table class="scrap-results">
 			<tr>

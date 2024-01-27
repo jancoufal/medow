@@ -8,7 +8,7 @@ from dataclasses import asdict
 from typing import List
 import sqlite3
 
-from mrepositoryentities import *
+from mrepository_entities import *
 from mscrappers_api import ScrapperType
 from msqlite_api import SqliteApi
 

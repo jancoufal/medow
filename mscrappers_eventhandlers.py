@@ -2,7 +2,7 @@ from logging import Logger
 
 from mformatters import Formatter, TimestampFormat
 from mrepository import Repository
-from mrepositoryentities import MScrapTaskE, TaskStatusEnum, MScrapTaskItemE
+from mrepository_entities import MScrapTaskE, TaskStatusEnum, MScrapTaskItemE
 
 from mscrappers_api import ScrapperEvents, ScrapperType
 
