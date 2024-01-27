@@ -1,21 +1,5 @@
-from enum import Enum
 from abc import ABC, abstractmethod
 from typing import Tuple
-
-
-class ScrapperType(Enum):
-	NOOP = "noop"
-	DUMMY = "dummy"
-	YOUTUBE_DL = "youtube_dl"
-	ROUMEN_KECY = "roumen_kecy"
-	ROUMEN_MASO = "roumen_maso"
-
-	@staticmethod
-	def of(scrapper_type: str) -> "ScrapperType":
-		for e in ScrapperType:
-			if e.value == scrapper_type:
-				return e
-		return ScrapperType.NOOP
 
 
 class ScrapperEvents(ABC):

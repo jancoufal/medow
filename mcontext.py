@@ -1,18 +1,18 @@
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from logging import Logger, basicConfig, getLogger
-from typing import Callable
 from datetime import datetime
 from enum import Enum
-from concurrent.futures import ThreadPoolExecutor
+from logging import Logger, basicConfig, getLogger
+from typing import Callable
 
 from flask import Flask
 
 from mconfig import Config
+from mformatters import Formatter
 from mrepository import Repository
 from mrepository_installer import RepositoryInstaller
 from mscrappertaskfactory import TaskFactory
 from msqlite_api import SqliteApi
-from mformatters import Formatter
 
 
 class AppRepositoryType(Enum):
@@ -60,7 +60,7 @@ class AppContext(object):
 		)
 
 		logger.info(f"Creating tables in in-memory repository.")
-		RepositoryInstaller(repository_in_memory).create_tables()
+		RepositoryInstaller(repository_in_memory.get_sqlite_api()).create_tables()
 
 		return cls(
 			app=flask_app,

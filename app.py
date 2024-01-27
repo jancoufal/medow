@@ -7,7 +7,7 @@ from flask import Flask, url_for, render_template, request
 
 import menvloader
 from mcontext import AppRepositoryType, AppContext
-from mscrappers_api import ScrapperType
+from mrepository_entities import TaskClassAndType, TaskClass, TaskType
 
 CONFIG_FILE = "config.yaml"
 app = Flask(__name__)
@@ -21,6 +21,11 @@ class HtmlEntitySymbol(Enum):
 	STATE = "&#x22f1;"  # "&#x225f;"
 	# STATS = "&#x03a3;"  # "&Sigma;"
 	SCRAP = "&#x21ca;"
+
+
+class ViewSources(Enum):
+	ROUMEN_KECY = "roumen-kecy"
+	ROUMEN_MASO = "roumen-maso"
 
 
 def get_page_data(ctx: AppContext, page_values: dict = None):
@@ -57,8 +62,8 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 		"config": str(ctx.config),
 	}
 
-	for s in [ScrapperType.ROUMEN_KECY, ScrapperType.ROUMEN_MASO]:
-		page_data["navigation"].append({"name": s.value, "href": url_for("page_view", source=s.value)})
+	for s in ViewSources:
+		page_data["navigation"].append({"name": s.value, "href": url_for("page_view", view_source=s.value)})
 
 	return page_data
 
@@ -102,7 +107,7 @@ def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int
 	else:
 		page_data["state"].update({
 			"page_view_mode": "task_overview",
-			"tasks": repo.read_recent_scrap_tasks_all(GLOBAL_APP_CONTEXT.config.listing_limits.scraps),
+			"tasks": repo.read_recent_tasks_all(GLOBAL_APP_CONTEXT.config.listing_limits.scraps),
 			"task_detail_link_base": url_for("page_state", repository=repository),
 		})
 
@@ -120,14 +125,14 @@ def page_scrap():
 			"form": request.form,
 		}
 
-		page_data["sources"] = [ScrapperType.ROUMEN_KECY, ScrapperType.ROUMEN_MASO]
+		page_data["sources"] = list(ViewSources)
 		tasks = []
 
 		match request.method, request.form.get("form", None):
 			case ("POST", "scrap"):
-				if request.form.get(f"source-{ScrapperType.ROUMEN_KECY.value}", None) is not None:
+				if request.form.get(f"source-{ViewSources.ROUMEN_KECY.value}", None) is not None:
 					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_roumen_kecy())
-				if request.form.get(f"source-{ScrapperType.ROUMEN_MASO.value}", None) is not None:
+				if request.form.get(f"source-{ViewSources.ROUMEN_MASO.value}", None) is not None:
 					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_roumen_maso())
 
 			case ("POST", "yt_dl"):
@@ -148,14 +153,18 @@ def page_scrap():
 	return render_template("scrap.html", page_data=page_data)
 
 
-@app.route("/view/<source>/")
-def page_view(source):
-	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"source": source})
+@app.route("/view/<view_source>/")
+def page_view(view_source: ViewSources):
+	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"view-source": view_source})
 	try:
-		items = GLOBAL_APP_CONTEXT.repository_persistent.read_recent_scrap_task_items(
-			ScrapperType.of(source),
-			3 + 0 * GLOBAL_APP_CONTEXT.config.listing_limits.images
-		)
+		match view_source:
+			case ViewSources.ROUMEN_KECY: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_KECY)
+			case ViewSources.ROUMEN_MASO: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
+			case _: raise ValueError(f"Invalid view type {view_source}")
+
+		items_limit = 3 + 0 * GLOBAL_APP_CONTEXT.config.listing_limits.images
+
+		items = GLOBAL_APP_CONTEXT.repository_persistent.read_recent_scrap_task_items(task_def, items_limit)
 
 		page_data.update({
 			"base_path": url_for("static", filename=GLOBAL_APP_CONTEXT.config.scrappers.storage_path_for_static),

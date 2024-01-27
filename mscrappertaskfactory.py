@@ -12,7 +12,8 @@ import bs4
 
 from mconfig import Config, ConfigScrapperRoumen, ConfigFtp
 from mrepository import Repository
-from mscrappers_api import ScrapperType, ScrapperEvents, ScrapperEventDispatcher
+from mrepository_entities import TaskClassAndType, TaskClass, TaskType
+from mscrappers_api import ScrapperEvents, ScrapperEventDispatcher
 from mscrappers_eventhandlers import ScrapperEventLogger, ScrapperEventRepositoryWriter
 from mformatters import Formatter
 
@@ -24,50 +25,53 @@ class TaskFactory(object):
 		self._repository_persistent = repository_persistent
 		self._repository_in_memory = repository_in_memory
 
-	def _create_event_handler(self, scrapper_type: ScrapperType):
+	def _create_event_handler(self, task_def: TaskClassAndType):
 		return ScrapperEventDispatcher((
-			ScrapperEventLogger(self._logger.getChild("event"), scrapper_type),
-			ScrapperEventRepositoryWriter(self._repository_in_memory, scrapper_type),
-			ScrapperEventRepositoryWriter(self._repository_persistent, scrapper_type),
+			ScrapperEventLogger(self._logger.getChild("event"), task_def),
+			ScrapperEventRepositoryWriter(self._repository_in_memory, task_def),
+			ScrapperEventRepositoryWriter(self._repository_persistent, task_def),
 		))
 
 	def create_task_dummy(self, description: str):
-		return _TaskDummy(self._create_event_handler(ScrapperType.DUMMY), description)
+		task_def = TaskClassAndType(TaskClass.DUMMY, TaskType.DUMMY)
+		return _TaskDummy(self._create_event_handler(task_def), description)
 
 	def create_task_roumen_kecy(self):
-		scrapper_type = ScrapperType.ROUMEN_KECY
+		task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_KECY)
 		return TaskRoumen(
-			self._create_event_handler(scrapper_type),
-			self._logger.getChild(scrapper_type.value),
-			scrapper_type,
+			self._create_event_handler(task_def),
+			self._logger.getChild(str(task_def)),
+			task_def,
 			self._config.scrappers.roumen_kecy,
 			self._config.scrappers.storage_path,
 			self._repository_persistent
 		)
 
 	def create_task_roumen_maso(self):
-		scrapper_type = ScrapperType.ROUMEN_MASO
+		task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
 		return TaskRoumen(
-			self._create_event_handler(scrapper_type),
-			self._logger.getChild(scrapper_type.value),
-			scrapper_type,
+			self._create_event_handler(task_def),
+			self._logger.getChild(str(task_def)),
+			task_def,
 			self._config.scrappers.roumen_maso,
 			self._config.scrappers.storage_path,
 			self._repository_persistent
 		)
 
 	def create_task_youtube_dl(self, urls: Tuple[str, ...]):
-		scrapper_type = ScrapperType.YOUTUBE_DL
+		task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.YOUTUBE_DL)
 		return TaskYoutubeDownload(
-			self._create_event_handler(scrapper_type),
-			self._logger.getChild(scrapper_type.value),
+			self._create_event_handler(task_def),
+			self._logger.getChild(str(task_def)),
 			f"{self._config.scrappers.storage_path}",
 			urls
 		)
 
-	def create_task_sync(self, scrapper_type: ScrapperType):
+	def create_task_sync(self, task_type: TaskType):
+		task_def = TaskClassAndType(TaskClass.SYNC, task_type)
 		return SyncToFtp(
-			scrapper_type,
+			self._logger.getChild(str(task_def)),
+			task_def,
 			self._repository_persistent,
 			self._config.ftp
 		)
@@ -113,14 +117,14 @@ class TaskRoumen(object):
 			self,
 			scrapper_event_handler: ScrapperEvents,
 			logger: Logger,
-			scrapper_type: ScrapperType,
+			task_def: TaskClassAndType,
 			config_scrapper: ConfigScrapperRoumen,
 			storage_dir: str,
 			repository: Repository
 	):
 		self._event = scrapper_event_handler
 		self._logger = logger
-		self._scrapper_type = scrapper_type
+		self._task_def = task_def
 		self._config_scrapper = config_scrapper
 		self._storage_dir = storage_dir
 		self._repository = repository
@@ -136,7 +140,7 @@ class TaskRoumen(object):
 					self._event.on_item_start(image_name_to_download)
 
 					# path will be like "{scrap_path}/{source}/{yyyy}/{week}/{image.jpg}"
-					relative_path = Path(self._scrapper_type.value).joinpath(f"{ts:%Y}").joinpath(f"{ts:%V}")
+					relative_path = Path(self._task_def.typ.value).joinpath(f"{ts:%Y}").joinpath(f"{ts:%V}")
 					destination_path = self._storage_dir / relative_path
 
 					destination_path.mkdir(parents=True, exist_ok=True)
@@ -220,7 +224,7 @@ class TaskYoutubeDownload(object):
 				"cachedir": False,
 				"call_home": False,
 				"no_color": True,
-				"outtmpl": f"{self._storage_directory}{ScrapperType.YOUTUBE_DL.value}/{ts:%Y}/{ts:%V}/%(title)s-%(id)s.%(ext)s",
+				"outtmpl": f"{self._storage_directory}{TaskType.YOUTUBE_DL.value}/{ts:%Y}/{ts:%V}/%(title)s-%(id)s.%(ext)s",
 				"logger": _YoutubeLogger(self._yt_logger),
 				"progress_hooks": [self._progress_hook],
 				"http_headers": {
@@ -269,8 +273,9 @@ class TaskYoutubeDownload(object):
 
 
 class SyncToFtp(object):
-	def __init__(self, scrapper_type: ScrapperType, repository: Repository, ftp: ConfigFtp):
-		self._scrapper_type = scrapper_type
+	def __init__(self, logger: Logger, task_def: TaskClassAndType, repository: Repository, ftp: ConfigFtp):
+		self._logger = logger
+		self._task_def = task_def
 		self._repository = repository
 		self._ftp = ftp
 
@@ -278,4 +283,4 @@ class SyncToFtp(object):
 		pass
 
 	def _get_items_to_sync(self):
-		self._repository.read_recent_scrap_tasks()
+		self._repository.read_recent_tasks()

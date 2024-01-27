@@ -4,12 +4,13 @@ from mformatters import Formatter, TimestampFormat
 from mrepository import Repository
 from mrepository_entities import MScrapTaskE, TaskStatusEnum, MScrapTaskItemE
 
-from mscrappers_api import ScrapperEvents, ScrapperType
+from mscrappers_api import ScrapperEvents
+from mrepository_entities import TaskClassAndType
 
 
 class ScrapperEventLogger(ScrapperEvents):
-	def __init__(self, logger: Logger, scrapper_type: ScrapperType):
-		self._l = logger.getChild(scrapper_type.value)
+	def __init__(self, logger: Logger, task_def: TaskClassAndType):
+		self._l = logger.getChild(str(task_def))
 
 	def on_new(self) -> None:
 		self._l.info(f"Task created.")
@@ -37,9 +38,9 @@ class ScrapperEventLogger(ScrapperEvents):
 
 
 class ScrapperEventRepositoryWriter(ScrapperEvents):
-	def __init__(self, repository: Repository, scrapper_type: ScrapperType):
+	def __init__(self, repository: Repository, task_def: TaskClassAndType):
 		self._repository = repository
-		self._scrapper_type = scrapper_type
+		self._task_def = task_def
 		self._entity_task = None
 		self._entity_task_item = None
 
@@ -50,7 +51,9 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 	def on_new(self) -> None:
 		self._entity_task = MScrapTaskE(
 			pk_id=None,
-			scrapper=self._scrapper_type.value,
+			ref_id=None,
+			task_class=self._task_def.cls.value,
+			task_type=self._task_def.typ.value,
 			ts_start=ScrapperEventRepositoryWriter._get_current_timestamp(),
 			ts_end=None,
 			status=TaskStatusEnum.CREATED.value,
@@ -82,6 +85,7 @@ class ScrapperEventRepositoryWriter(ScrapperEvents):
 	def on_item_start(self, item_name: str) -> None:
 		self._entity_task_item = MScrapTaskItemE(
 			pk_id=None,
+			ref_id=None,
 			task_id=self._entity_task.pk_id,
 			ts_start=ScrapperEventRepositoryWriter._get_current_timestamp(),
 			ts_end=None,

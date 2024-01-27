@@ -1,12 +1,11 @@
 import logging
 from logging import Logger, basicConfig
 import sqlite3
-from dataclasses import dataclass
 from typing import List
 
-from mrepository import Repository
-from mrepository_entities import MScrapTaskE, MScrapTaskItemE, TaskStatusEnum, TaskSyncStatusEnum
-from mscrappers_api import ScrapperType
+from mrepository import Repository, _Table
+from mrepository_entities import *
+from mrepository_installer import RepositoryInstaller
 from msqlite_api import SqliteApi
 
 
@@ -82,8 +81,8 @@ def migrate():
 	repository = Repository(logger, dst_db)
 
 	def drop_tables(c: sqlite3.Cursor):
-		c.execute("DROP TABLE IF EXISTS scrap_task")
-		c.execute("DROP TABLE IF EXISTS scrap_task_item")
+		c.execute("DROP TABLE IF EXISTS " + _Table.TASK.value)
+		c.execute("DROP TABLE IF EXISTS " + _Table.TASK_ITEM.value)
 
 	print("Dropping tables...")
 	dst_db.do_with_cursor(drop_tables)
@@ -93,43 +92,19 @@ def migrate():
 	print("Resetting autoincrement counters...")
 	dst_db.do_with_cursor(reset_autoincrement_counters)
 
-	def create_tables(c: sqlite3.Cursor):
-		c.execute("""CREATE TABLE IF NOT EXISTS scrap_task(
-			pk_id INTEGER PRIMARY KEY AUTOINCREMENT,
-			scrapper TEXT,
-			ts_start TEXT,
-			ts_end TEXT,
-			status TEXT,
-			sync_status TEXT,
-			item_count_success INTEGER,
-			item_count_fail INTEGER,
-			item_count_synced INTEGER,
-			exception_type TEXT,
-			exception_value TEXT
-		);""")
-
-		c.execute("""CREATE TABLE IF NOT EXISTS scrap_task_item(
-			pk_id INTEGER PRIMARY KEY AUTOINCREMENT,
-			task_id INTEGER,
-			ts_start TEXT,
-			ts_end TEXT,
-			status TEXT,
-			sync_status TEXT,
-			item_name TEXT,
-			local_path TEXT,
-			exception_type TEXT,
-			exception_value TEXT,
-			FOREIGN KEY (task_id) REFERENCES scrap_task(pk_id)
-		);""")
-
 	print("Creating tables...")
-	dst_db.do_with_cursor(create_tables)
+	RepositoryInstaller(dst_db).create_tables()
 
 	print("Migrating scrap tasks...")
 	tasks = []
-	source_map = {
-		"roumen": ScrapperType.ROUMEN_KECY.value,
-		"roumen-maso": ScrapperType.ROUMEN_MASO.value,
+	source_to_task_class_map = {
+		"roumen": TaskClass.SCRAP.value,
+		"roumen-maso": TaskClass.SCRAP.value,
+	}
+
+	source_to_task_type_map = {
+		"roumen": TaskType.ROUMEN_KECY.value,
+		"roumen-maso": TaskType.ROUMEN_MASO.value,
 	}
 
 	error_map = {
@@ -143,14 +118,14 @@ def migrate():
 	for r in src_data.stat:
 		tasks.append(MScrapTaskE(
 			pk_id=r.scrap_stat_id,
-			scrapper=source_map[r.source],
+			ref_id=None,
+			task_class=source_to_task_class_map[r.source],
+			task_type=source_to_task_type_map[r.source],
 			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
 			ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
 			status=r.status,
-			sync_status=TaskSyncStatusEnum.NOT_STARTED.value,
 			item_count_success=r.count_success if r.count_success is not None else 0,
 			item_count_fail=r.count_fail if r.count_fail is not None else 0,
-			item_count_synced=0,
 			exception_type=error_map[r.exc_type] if r.exc_type is not None else None,
 			exception_value=r.exc_value,
 		))
@@ -170,11 +145,11 @@ def migrate():
 			if r.scrap_stat_id is not None:
 				task_items.append(MScrapTaskItemE(
 					pk_id=None,
+					ref_id=None,
 					task_id=task_id_map[r.scrap_stat_id],
 					ts_start=f"{r.ts_date} {r.ts_time}",
 					ts_end=None,
 					status=TaskStatusEnum.COMPLETED.value,
-					sync_status=TaskSyncStatusEnum.NOT_STARTED.value,
 					item_name=r.name,
 					local_path=r.local_path,
 					exception_type=None,
@@ -185,11 +160,11 @@ def migrate():
 			if r.scrap_stat_id is not None:
 				task_items.append(MScrapTaskItemE(
 					pk_id=None,
+					ref_id=None,
 					task_id=task_id_map[r.scrap_stat_id],
 					ts_start=f"{r.ts_date} {r.ts_time}",
 					ts_end=None,
 					status=TaskStatusEnum.ERROR.value,
-					sync_status=TaskSyncStatusEnum.NOT_STARTED.value,
 					item_name=r.item_name,
 					local_path=None,
 					exception_type=error_map[r.exc_type],

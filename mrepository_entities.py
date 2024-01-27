@@ -1,7 +1,30 @@
-from enum import Enum
 from dataclasses import dataclass
 from datetime import datetime
+from enum import Enum
+
 from mformatters import Formatter, TimestampFormat
+
+
+class TaskClass(Enum):
+	DUMMY = "dummy"
+	SCRAP = "scrap"
+	SYNC = "sync"
+
+
+class TaskType(Enum):
+	DUMMY = "dummy"
+	ROUMEN_KECY = "roumen_kecy"
+	ROUMEN_MASO = "roumen_maso"
+	YOUTUBE_DL = "youtube_dl"
+
+
+@dataclass
+class TaskClassAndType:
+	cls: TaskClass
+	typ: TaskType
+
+	def __str__(self) -> str:
+		return f"{self.cls}.{self.typ}"
 
 
 class TaskStatusEnum(Enum):
@@ -21,14 +44,14 @@ class TaskSyncStatusEnum(Enum):
 @dataclass
 class MScrapTaskE:
 	pk_id: int | None
-	scrapper: str
+	ref_id: int | None
+	task_class: str
+	task_type: str
 	ts_start: str
 	ts_end: str | None
 	status: str
-	sync_status: str
 	item_count_success: int
 	item_count_fail: int
-	item_count_synced: int
 	exception_type: str | None
 	exception_value: str | None
 
@@ -55,20 +78,15 @@ class MScrapTaskE:
 		s, f = self.item_count_success, self.item_count_fail
 		return Formatter.percentage_str_safe(s, s+f, Formatter.NOT_AVAILABLE_STR)
 
-	@property
-	def sync_percentage(self) -> str:
-		y, s = self.item_count_synced, self.item_count_success
-		return Formatter.percentage_str_safe(y, y+s, Formatter.NOT_AVAILABLE_STR)
-
 
 @dataclass
 class MScrapTaskItemE:
 	pk_id: int | None
+	ref_id: int | None
 	task_id: int
 	ts_start: str
 	ts_end: str | None
 	status: str
-	sync_status: str
 	item_name: str
 	local_path: str | None
 	exception_type: str | None

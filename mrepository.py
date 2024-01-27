@@ -2,26 +2,26 @@
 persistent repository implementation
 """
 
-from logging import Logger
+import sqlite3
 from abc import ABC, abstractmethod
 from dataclasses import asdict
+from logging import Logger
 from typing import List
-import sqlite3
 
 from mrepository_entities import *
-from mscrappers_api import ScrapperType
 from msqlite_api import SqliteApi
 
 
-class _Tables(Enum):
-	SCRAP_TASK = "scrap_task"
-	SCRAP_TASK_ITEM = "scrap_task_item"
+class _Table(Enum):
+	TASK = "task"
+	TASK_ITEM = "task_item"
 
-
-class _ScrapState(Enum):
-	IN_PROGRESS = "in_progress"
-	COMPLETE = "complete"
-	FAILED = "failed"
+	@staticmethod
+	def for_entity(entity: MScrapTaskE | MScrapTaskItemE) -> str:
+		match entity:
+			case MScrapTaskE(): return _Table.TASK.value
+			case MScrapTaskItemE(): return _Table.TASK_ITEM.value
+			case _: raise ValueError(f"Unknown entity {entity}.")
 
 
 class RepositoryInterface(ABC):
@@ -40,18 +40,11 @@ class Repository(RepositoryInterface):
 		self._logger = logger
 		self._sqlite_api = sqlite_api
 
-	@staticmethod
-	def _get_entity_table(entity: MScrapTaskE | MScrapTaskItemE) -> str:
-		match entity:
-			case MScrapTaskE(): return "scrap_task"
-			case MScrapTaskItemE(): return "scrap_task_item"
-			case _: raise ValueError(f"Unknown entity {entity}.")
-
 	def get_sqlite_api(self) -> SqliteApi:
 		return self._sqlite_api
 
 	def save_entity(self, entity: MScrapTaskE | MScrapTaskItemE, get_last_id: bool) -> int | None:
-		table_name = Repository._get_entity_table(entity)
+		table_name = _Table.for_entity(entity)
 		entity_as_dict = asdict(entity)
 		col_names = ",".join(entity_as_dict.keys())
 		bind_names = ",".join((":" + c for c in entity_as_dict.keys()))
@@ -80,10 +73,10 @@ class Repository(RepositoryInterface):
 
 	def update_entity(self, entity: MScrapTaskE | MScrapTaskItemE) -> None:
 		def _updater(conn: sqlite3.Connection):
-			# rename all value_mapping keys to "new_{key}" and where_condition_mapping keys to "where_{key}"
+			# rename all value_mapping keys to "new_{key}" and where_condition_mapping keys to "whr_{key}"
 			# statement pattern:
 			# update table_name set col_a=:new_col_a, col_b=:new_col_b where col_c=:where_col_c and col_d=:where_col_d
-			table_name = Repository._get_entity_table(entity)
+			table_name = _Table.for_entity(entity)
 			entity_as_dict = asdict(entity)
 			stmt_set = ", ".join(map(lambda k: f"{k}=:new_{k}", entity_as_dict.keys()))
 			stmt_whr = {
@@ -100,48 +93,62 @@ class Repository(RepositoryInterface):
 	def load_entity_scrap_task(self, pk_id: int) -> MScrapTaskE | None:
 		self._logger.debug(f"Reading entity 'MScrapTaskE' for pk_id '{pk_id}'.")
 		return self._sqlite_api.read(
-			f"select * from {_Tables.SCRAP_TASK.value} where pk_id=:pk_id",
+			f"select * from {_Table.TASK.value} where pk_id=:pk_id",
 			{"pk_id": pk_id},
 			lambda rs: MScrapTaskE(*rs)
 		).pop()
 
-	def read_recent_scrap_tasks_all(self, item_limit: int) -> List[MScrapTaskE]:
-		self._logger.debug(f"Reading entities 'MScrapTaskE' for all scrappers limited to {item_limit} items.")
+	def read_recent_tasks_all(self, item_limit: int) -> List[MScrapTaskE]:
+		self._logger.debug(f"Reading recent entities 'MScrapTaskE' limited to {item_limit} items.")
 		return self._sqlite_api.read(
-			sql_stmt=f"select * from {_Tables.SCRAP_TASK.value} order by pk_id desc limit :limit",
+			sql_stmt=f"select * from {_Table.TASK.value} order by pk_id desc limit :limit",
 			binds={"limit": item_limit},
-			row_mapper=lambda rs: MScrapTaskE(*rs)
-		)
-
-	def read_recent_scrap_tasks(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskE]:
-		self._logger.debug(f"Reading entities 'MScrapTaskE' for scrapper '{scrapper_type.value}' limited to {item_limit} items.")
-		return self._sqlite_api.read(
-			sql_stmt=f"select * from {_Tables.SCRAP_TASK.value} where scrapper=:scrapper order by pk_id desc limit :limit",
-			binds={"scrapper": scrapper_type.value, "limit": item_limit},
 			row_mapper=lambda rs: MScrapTaskE(*rs)
 		)
 
 	def read_scrap_task_items(self, task_entity: MScrapTaskE) -> List[MScrapTaskItemE]:
 		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
 		return self._sqlite_api.read(
-			sql_stmt=f"select * from {_Tables.SCRAP_TASK_ITEM.value} where task_id=:task_id order by pk_id asc",
+			sql_stmt=f"select * from {_Table.TASK_ITEM.value} where task_id=:task_id order by pk_id asc",
 			binds={"task_id": task_entity.pk_id},
 			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)
 
-	def read_recent_scrap_task_items(self, scrapper_type: ScrapperType, item_limit: int) -> List[MScrapTaskItemE]:
-		self._logger.debug(f"Reading recent entities 'MScrapTaskE' for scrapper '{scrapper_type.value}' limited to {item_limit} items.")
+	def read_recent_scrap_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MScrapTaskItemE]:
+		self._logger.debug(f"Reading recent entities 'MScrapTaskE' for task '{task_def}' limited to {item_limit} items.")
 		return self._sqlite_api.read(
-			sql_stmt=f"select sti.* from {_Tables.SCRAP_TASK.value} st inner join {_Tables.SCRAP_TASK_ITEM.value} sti on sti.task_id=st.pk_id where st.scrapper=:scrapper order by sti.pk_id desc limit :limit",
-			binds={"scrapper": scrapper_type.value, "limit": item_limit},
+			sql_stmt=f"""
+				select ti.*
+				from {_Table.TASK.value} t
+				inner join {_Table.TASK_ITEM.value} ti
+					on ti.task_id=t.pk_id
+				where t.task_class=:task_class and t.task_type=:task_type
+				order by ti.pk_id desc
+				limit :limit""",
+			binds={"task_class": task_def.cls.value, "task_type": task_def.typ.value, "limit": item_limit},
 			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)
 
-	def read_task_items_unsynced(self, scrapper_type: ScrapperType) -> List[MScrapTaskItemE]:
-		self._logger.debug(f"Reading unsynced entities 'MScrapTaskE' for scrapper '{scrapper_type.value}'.")
+	def read_task_items_unsynced(self, task_class: TaskClass, task_type: TaskType) -> List[MScrapTaskItemE]:
+		self._logger.debug(f"Reading non synchronized entities 'MScrapTaskE' for task '{task_class.value}.{task_type.value}'.")
 		return self._sqlite_api.read(
-			sql_stmt=f"select sti.* from {_Tables.SCRAP_TASK.value} st inner join {_Tables.SCRAP_TASK_ITEM.value} sti on sti.task_id=st.pk_id where st.scrapper=:scrapper and sync_status=:sync_status order by sti.pk_id desc",
-			binds={"scrapper": scrapper_type.value, "sync_status": TaskSyncStatusEnum.NOT_STARTED.value},
+			sql_stmt=f"""
+				select ti.*
+				from {_Table.TASK.value} t
+				inner join {_Table.TASK_ITEM.value} ti
+					on ti.task_id=st.pk_id
+				where t.task_class=:task_class
+					and t.task_type=:task_type
+					and not exists (
+						select 1
+						from {_Table.TASK_ITEM.value} iti
+						where iti.pk_id=ti.ref_id and iti.task_class=:sync_task_class and iti.task_type=:task_type)
+				order by ti.pk_id desc""",
+			binds={
+				"task_class": task_class.value,
+				"task_type": task_type.value,
+				"sync_task_class": TaskClass.SYNC.value,
+			},
 			row_mapper=lambda rs: MScrapTaskItemE(*rs)
 		)
 

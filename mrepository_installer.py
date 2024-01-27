@@ -1,16 +1,18 @@
 from sqlite3 import Connection
-from mrepository import Repository
+from msqlite_api import SqliteApi
 
 
 class RepositoryInstaller(object):
-	def __init__(self, repository: Repository):
-		self._repository = repository
+	def __init__(self, sql_api: SqliteApi):
+		self._sql_api = sql_api
 
 	def create_tables(self):
 		def _create_tables_impl(c: Connection):
-			c.execute("""CREATE TABLE IF NOT EXISTS scrap_task(
+			c.execute("""CREATE TABLE IF NOT EXISTS task(
 				pk_id INTEGER PRIMARY KEY AUTOINCREMENT,
-				scrapper TEXT,
+				ref_id INTEGER,
+				task_class TEXT,
+				task_type TEXT,
 				ts_start TEXT,
 				ts_end TEXT,
 				status TEXT,
@@ -20,8 +22,9 @@ class RepositoryInstaller(object):
 				exception_value TEXT
 			);""")
 
-			c.execute("""CREATE TABLE IF NOT EXISTS scrap_task_item(
+			c.execute("""CREATE TABLE IF NOT EXISTS task_item(
 				pk_id INTEGER PRIMARY KEY AUTOINCREMENT,
+				ref_id INTEGER,
 				task_id INTEGER,
 				ts_start TEXT,
 				ts_end TEXT,
@@ -33,4 +36,4 @@ class RepositoryInstaller(object):
 				FOREIGN KEY (task_id) REFERENCES scrap_task(pk_id)
 			);""")
 
-		self._repository.get_sqlite_api().do_with_connection(_create_tables_impl)
+		self._sql_api.do_with_connection(_create_tables_impl)
