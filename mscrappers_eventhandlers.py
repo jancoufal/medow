@@ -51,7 +51,6 @@ class TaskEventRepositoryWriter(TaskEvents):
 	def on_new(self) -> None:
 		self._entity_task = MTaskE(
 			pk_id=None,
-			ref_id=None,
 			task_class=self._task_def.cls.value,
 			task_type=self._task_def.typ.value,
 			ts_start=TaskEventRepositoryWriter._get_current_timestamp(),

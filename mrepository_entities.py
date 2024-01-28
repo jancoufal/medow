@@ -44,7 +44,6 @@ class TaskSyncStatusEnum(Enum):
 @dataclass
 class MTaskE:
 	pk_id: int | None
-	ref_id: int | None  # TODO: probably not needed at all
 	task_class: str
 	task_type: str
 	ts_start: str

@@ -118,7 +118,6 @@ def migrate():
 	for r in src_data.stat:
 		tasks.append(MTaskE(
 			pk_id=r.scrap_stat_id,
-			ref_id=None,
 			task_class=source_to_task_class_map[r.source],
 			task_type=source_to_task_type_map[r.source],
 			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
