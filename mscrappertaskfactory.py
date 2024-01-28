@@ -5,6 +5,7 @@ from pathlib import Path
 from datetime import datetime
 import urllib
 import requests
+from ftplib import FTP_TLS, FTP
 
 
 from youtube_dl.youtube_dl import YoutubeDL
@@ -12,7 +13,7 @@ import bs4
 
 from mconfig import Config, ConfigScrapperRoumen, ConfigFtp
 from mrepository import Repository
-from mrepository_entities import TaskClassAndType, TaskClass, TaskType
+from mrepository_entities import TaskClassAndType, TaskClass, TaskType, MTaskItemE
 from mscrappers_api import TaskEvents, TaskEventDispatcher
 from mscrappers_eventhandlers import TaskEventLogger, TaskEventRepositoryWriter
 from mformatters import Formatter
@@ -74,6 +75,7 @@ class TaskFactory(object):
 			self._logger.getChild(str(task_def)),
 			task_def,
 			self._repository_persistent,
+			self._config.scrappers.storage_path,
 			self._config.ftp
 		)
 
@@ -161,7 +163,7 @@ class TaskRoumen(object):
 			self._event.on_error(ex)
 
 	def _get_image_names_to_download(self) -> List[str]:
-		recent_items = self._repository.read_recent_scrap_task_items(self._scrapper_type, TaskRoumen.RECENT_ITEMS_LIMIT)
+		recent_items = self._repository.read_recent_scrap_task_items(self._task_def, TaskRoumen.RECENT_ITEMS_LIMIT)
 		recent_items_names = set(i.item_name for i in recent_items)
 		remote_images = self._scrap_image_names_from_website()
 		remote_images = [_ for _ in remote_images if _ not in recent_items_names]
@@ -280,16 +282,46 @@ class SyncToFtp(object):
 			logger: Logger,
 			task_def: TaskClassAndType,
 			repository: Repository,
+			storage_dir: str,
 			ftp_config: ConfigFtp
 	):
-		self._event = task_event_handler,
+		self._event = task_event_handler
 		self._logger = logger
+		self._logger_ftp = logger.getChild("ftp")
 		self._task_def = task_def
 		self._repository = repository
+		self._storage_dir = Path(storage_dir)
 		self._ftp_config = ftp_config
+		self._event.on_new()
 
 	def __call__(self):
-		pass
+		self._event.on_start()
+		try:
+			with FTP_TLS(host=self._ftp_config.host, user=self._ftp_config.user, passwd=self._ftp_config.password) as ftp:
+				for item_to_sync in self._repository.read_task_items_not_synced(self._task_def):
+					self._item_sync(ftp, item_to_sync)
+			self._event.on_finish()
+		except Exception as ex:
+			self._event.on_error(ex)
 
-	def _get_items_to_sync(self):
-		self._repository.read_recent_tasks()
+	def _item_sync(self, ftp: FTP, item: MTaskItemE):
+		try:
+			self._event.on_item_start(item.item_name, item.pk_id)
+			self._logger_ftp.info(f"Changing directory to root.")
+			ftp.cwd("/")
+
+			# go to required directory (and create the directory structure if needed)
+			lp = Path(item.local_path)
+			for path_dir in lp.parent.parts:
+				if not len(list(filter(lambda r: r[0] == path_dir and r[1].get("type", "") == "dir", ftp.mlsd()))) > 0:
+					self._logger_ftp.info(f"Creating directory '{path_dir}'.")
+					ftp.mkd(path_dir)
+				ftp.cwd(path_dir)
+			self._logger_ftp.info(f"Directory changed to '{lp.parent}'.")
+
+			with open(self._storage_dir / lp, "rb") as fp:
+				ftp.storbinary("STOR " + lp.name, fp=fp, blocksize=self._ftp_config.blocksize)
+
+			self._event.on_item_finish(lp.name)
+		except Exception as ex:
+			self._event.on_item_error(ex)

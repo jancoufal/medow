@@ -2,7 +2,7 @@ from logging import Logger
 
 from mformatters import Formatter, TimestampFormat
 from mrepository import Repository
-from mrepository_entities import MScrapTaskE, TaskStatusEnum, MScrapTaskItemE
+from mrepository_entities import MTaskE, TaskStatusEnum, MTaskItemE
 
 from mscrappers_api import TaskEvents
 from mrepository_entities import TaskClassAndType
@@ -49,7 +49,7 @@ class TaskEventRepositoryWriter(TaskEvents):
 		return Formatter.ts_to_str(TimestampFormat.DATETIME_MS)
 
 	def on_new(self) -> None:
-		self._entity_task = MScrapTaskE(
+		self._entity_task = MTaskE(
 			pk_id=None,
 			ref_id=None,
 			task_class=self._task_def.cls.value,
@@ -83,7 +83,7 @@ class TaskEventRepositoryWriter(TaskEvents):
 		self._repository.update_entity(self._entity_task)
 
 	def on_item_start(self, item_name: str, ref_id: int | None = None) -> None:
-		self._entity_task_item = MScrapTaskItemE(
+		self._entity_task_item = MTaskItemE(
 			pk_id=None,
 			ref_id=ref_id,
 			task_id=self._entity_task.pk_id,

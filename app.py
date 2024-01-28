@@ -141,7 +141,8 @@ def page_scrap():
 					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_youtube_dl(urls))
 
 			case ("POST", "ftp"):
-				tasks.extend([GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType])
+				tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(TaskType.YOUTUBE_DL))
+				# tasks.extend([GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
 
 		for task in tasks:
 			GLOBAL_APP_CONTEXT.task_executor.submit(task)

@@ -62,6 +62,7 @@ class ConfigFtp:
 	port: int
 	user: str
 	password: str
+	blocksize: int
 
 
 @dataclass

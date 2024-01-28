@@ -38,3 +38,4 @@ ftp:
   port: 21
   user: medow
   password: PiG[ox
+  blocksize: 16384

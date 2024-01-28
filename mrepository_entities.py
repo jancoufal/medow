@@ -24,7 +24,7 @@ class TaskClassAndType:
 	typ: TaskType
 
 	def __str__(self) -> str:
-		return f"{self.cls}.{self.typ}"
+		return f"{self.cls.value}.{self.typ.value}"
 
 
 class TaskStatusEnum(Enum):
@@ -42,9 +42,9 @@ class TaskSyncStatusEnum(Enum):
 
 
 @dataclass
-class MScrapTaskE:
+class MTaskE:
 	pk_id: int | None
-	ref_id: int | None
+	ref_id: int | None  # TODO: probably not needed at all
 	task_class: str
 	task_type: str
 	ts_start: str
@@ -80,7 +80,7 @@ class MScrapTaskE:
 
 
 @dataclass
-class MScrapTaskItemE:
+class MTaskItemE:
 	pk_id: int | None
 	ref_id: int | None
 	task_id: int

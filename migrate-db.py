@@ -116,7 +116,7 @@ def migrate():
 	}
 
 	for r in src_data.stat:
-		tasks.append(MScrapTaskE(
+		tasks.append(MTaskE(
 			pk_id=r.scrap_stat_id,
 			ref_id=None,
 			task_class=source_to_task_class_map[r.source],
@@ -139,11 +139,11 @@ def migrate():
 		new_id = repository.save_entity(task, True)
 		task_id_map[old_id] = new_id
 
-	def migrating_scrap_task_items(task_id_map: dict[int, int]) -> List[MScrapTaskItemE]:
+	def migrating_scrap_task_items(task_id_map: dict[int, int]) -> List[MTaskItemE]:
 		task_items = []
 		for r in src_data.items:
 			if r.scrap_stat_id is not None:
-				task_items.append(MScrapTaskItemE(
+				task_items.append(MTaskItemE(
 					pk_id=None,
 					ref_id=None,
 					task_id=task_id_map[r.scrap_stat_id],
@@ -158,7 +158,7 @@ def migrate():
 
 		for r in src_data.fails:
 			if r.scrap_stat_id is not None:
-				task_items.append(MScrapTaskItemE(
+				task_items.append(MTaskItemE(
 					pk_id=None,
 					ref_id=None,
 					task_id=task_id_map[r.scrap_stat_id],
