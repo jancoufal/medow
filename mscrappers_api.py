@@ -28,7 +28,7 @@ class TaskEvents(ABC):
 		pass
 
 	@abstractmethod
-	def on_item_finish(self, local_path: str | None) -> None:
+	def on_item_finish(self, destination_path: str | None) -> None:
 		pass
 
 	@abstractmethod
@@ -67,9 +67,9 @@ class TaskEventDispatcher(TaskEvents):
 		for event_handler in self._event_handlers:
 			event_handler.on_item_progress(description)
 
-	def on_item_finish(self, local_path: str | None) -> None:
+	def on_item_finish(self, destination_path: str | None) -> None:
 		for event_handler in self._event_handlers:
-			event_handler.on_item_finish(local_path)
+			event_handler.on_item_finish(destination_path)
 
 	def on_item_error(self, ex: Exception) -> None:
 		for event_handler in self._event_handlers:

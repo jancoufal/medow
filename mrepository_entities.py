@@ -88,7 +88,7 @@ class MTaskItemE:
 	ts_end: str | None
 	status: str
 	item_name: str
-	local_path: str | None
+	destination_path: str | None
 	exception_type: str | None
 	exception_value: str | None
 

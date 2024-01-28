@@ -151,7 +151,7 @@ def migrate():
 					ts_end=None,
 					status=TaskStatusEnum.COMPLETED.value,
 					item_name=r.name,
-					local_path=r.local_path,
+					destination_path=r.local_path,
 					exception_type=None,
 					exception_value=None,
 				))
@@ -166,7 +166,7 @@ def migrate():
 					ts_end=None,
 					status=TaskStatusEnum.ERROR.value,
 					item_name=r.item_name,
-					local_path=None,
+					destination_path=None,
 					exception_type=error_map[r.exc_type],
 					exception_value=r.exc_value,
 				))

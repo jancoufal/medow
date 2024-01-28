@@ -168,7 +168,7 @@ def page_view(view_source: str):
 
 		page_data.update({
 			"base_path": url_for("static", filename=GLOBAL_APP_CONTEXT.config.scrappers.storage_path_for_static),
-			"task_items": [item for item in items if item.local_path is not None]
+			"task_items": [item for item in items if item.destination_path is not None]
 		})
 
 		return render_template("view.html", page_data=page_data)

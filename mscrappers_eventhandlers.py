@@ -30,8 +30,8 @@ class TaskEventLogger(TaskEvents):
 	def on_item_progress(self, description: str) -> None:
 		self._l.debug(f"Item progress: {description}.")
 
-	def on_item_finish(self, local_path: str | None) -> None:
-		self._l.info(f"Item finished: '{local_path}'.")
+	def on_item_finish(self, destination_path: str | None) -> None:
+		self._l.info(f"Item finished: '{destination_path}'.")
 
 	def on_item_error(self, ex: Exception) -> None:
 		self._l.error(f"Item error: {ex!s}.")
@@ -91,7 +91,7 @@ class TaskEventRepositoryWriter(TaskEvents):
 			ts_end=None,
 			status=TaskStatusEnum.RUNNING.value,
 			item_name=item_name,
-			local_path=None,
+			destination_path=None,
 			exception_type=None,
 			exception_value=None
 		)
@@ -102,10 +102,10 @@ class TaskEventRepositoryWriter(TaskEvents):
 		# do nothing
 		pass
 
-	def on_item_finish(self, local_path: str | None) -> None:
+	def on_item_finish(self, destination_path: str | None) -> None:
 		self._entity_task_item.status = TaskStatusEnum.COMPLETED.value
 		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
-		self._entity_task_item.local_path = local_path
+		self._entity_task_item.destination_path = destination_path
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_success += 1
 

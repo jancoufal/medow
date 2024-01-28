@@ -215,7 +215,7 @@ class TaskYoutubeDownload(object):
 		self._urls = [url.strip() for url in urls if len(url.strip()) > 0]
 		self._storage_directory = storage_directory
 		self._event.on_new()
-		self._local_path = None
+		self._destination_path = None
 
 	def __call__(self):
 		ts = datetime.now()
@@ -242,7 +242,7 @@ class TaskYoutubeDownload(object):
 					with YoutubeDL(ydl_opts) as ydl:
 						ydl.download([url])
 
-					self._event.on_item_finish(self._local_path)
+					self._event.on_item_finish(self._destination_path)
 
 				except Exception as ex:
 					self._event.on_item_error(ex)
@@ -263,8 +263,8 @@ class TaskYoutubeDownload(object):
 				f" speed: {info.get('_speed_str', 'n/a').strip()}"
 			)
 
-			if self._local_path is None and info.get("filename", None) is not None:
-				self._local_path = info.get("filename").removeprefix(self._storage_directory)
+			if self._destination_path is None and info.get("filename", None) is not None:
+				self._destination_path = info.get("filename").removeprefix(self._storage_directory)
 
 		except Exception as ex:
 			self._event.on_item_progress(f"Exception {ex}.")
@@ -311,7 +311,7 @@ class SyncToFtp(object):
 			ftp.cwd("/")
 
 			# go to required directory (and create the directory structure if needed)
-			lp = Path(item.local_path)
+			lp = Path(item.destination_path)
 			for path_dir in lp.parent.parts:
 				if not len(list(filter(lambda r: r[0] == path_dir and r[1].get("type", "") == "dir", ftp.mlsd()))) > 0:
 					self._logger_ftp.info(f"Creating directory '{path_dir}'.")
