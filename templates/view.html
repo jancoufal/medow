@@ -12,7 +12,7 @@ age: {{ item.age }}">&#9432;</span>
 			<span class="image-scrap-name">name: <span class="image-scrap-name-value">{{ item.item_name }}</span></span>
 			<span class="image-scrap-cleaner"></span>
 		</div>
-		<img alt="{{ item.item_name }}" src="{{ page_data.base_path + item.local_path }}" />
+		<img alt="{{ item.item_name }}" src="{{ page_data.base_path + item.destination_path }}" />
 	</div>
 	{% endfor -%}
 </div>

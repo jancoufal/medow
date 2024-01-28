@@ -10,7 +10,6 @@ class RepositoryInstaller(object):
 		def _create_tables_impl(c: Connection):
 			c.execute("""CREATE TABLE IF NOT EXISTS task(
 				pk_id INTEGER PRIMARY KEY AUTOINCREMENT,
-				ref_id INTEGER,
 				task_class TEXT,
 				task_type TEXT,
 				ts_start TEXT,
@@ -30,7 +29,7 @@ class RepositoryInstaller(object):
 				ts_end TEXT,
 				status TEXT,
 				item_name TEXT,
-				local_path TEXT,
+				destination_path TEXT,
 				exception_type TEXT,
 				exception_value TEXT,
 				FOREIGN KEY (task_id) REFERENCES scrap_task(pk_id)

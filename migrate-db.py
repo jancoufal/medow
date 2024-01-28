@@ -138,6 +138,19 @@ def migrate():
 		new_id = repository.save_entity(task, True)
 		task_id_map[old_id] = new_id
 
+	# old localpath:
+	# roumen-maso/2020/48/to_za_sociku_nebejvalo.jpg
+	# roumen/2020/47/_20201118_232735.JPG
+	# new localpath:
+	# roumen_maso/2024/04/balvan.jpg
+	# roumen_kecy/2024/04/Dopln_prislovi.jpg
+	def local_path_migrate(old_local_path: str) -> str:
+		if old_local_path.startswith("roumen-maso/"):
+			return TaskType.ROUMEN_MASO.value + old_local_path.removeprefix("roumen-maso")
+		if old_local_path.startswith("roumen/"):
+			return TaskType.ROUMEN_KECY.value + old_local_path.removeprefix("roumen")
+		raise ValueError(f"Unknown path: {old_local_path}")
+
 	def migrating_scrap_task_items(task_id_map: dict[int, int]) -> List[MTaskItemE]:
 		task_items = []
 		for r in src_data.items:
@@ -150,7 +163,7 @@ def migrate():
 					ts_end=None,
 					status=TaskStatusEnum.COMPLETED.value,
 					item_name=r.name,
-					destination_path=r.local_path,
+					destination_path=local_path_migrate(r.local_path),
 					exception_type=None,
 					exception_value=None,
 				))
