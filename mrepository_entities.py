@@ -35,10 +35,9 @@ class TaskStatusEnum(Enum):
 
 
 class TaskSyncStatusEnum(Enum):
-	NOT_STARTED = "not_started"
-	SYNCING = "syncing"
-	COMPLETED = "completed"
-	ERROR = "error"
+	IGNORE = "ignore"
+	NOT_SYNCED = "not_synced"
+	SYNCED = "synced"
 
 
 @dataclass
@@ -90,6 +89,7 @@ class MTaskItemE:
 	destination_path: str | None
 	exception_type: str | None
 	exception_value: str | None
+	sync_status: str
 
 	@property
 	def start_as_timestamp(self) -> datetime | None:

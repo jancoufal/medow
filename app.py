@@ -82,36 +82,39 @@ def page_griffin():
 @app.route("/state/<repository>/")
 @app.route("/state/<repository>/<task_id>/")
 def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int = None):
-	match repository:
-		case AppRepositoryType.IN_MEMORY.value: repo = GLOBAL_APP_CONTEXT.repository_in_memory
-		case AppRepositoryType.PERSISTENT.value: repo = GLOBAL_APP_CONTEXT.repository_persistent
-		case _: repo = GLOBAL_APP_CONTEXT.repository_in_memory  # fallback
-
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
-	page_data["state"] = {
-		"uptime": GLOBAL_APP_CONTEXT.uptime,
-		"active_repository": repository,
-		"active_task_id": task_id,
-		"repositories": {
-			repository_type.value: url_for("page_state", repository=repository_type.value) for repository_type in AppRepositoryType
-		},
-	}
+	try:
+		match repository:
+			case AppRepositoryType.IN_MEMORY.value: repo = GLOBAL_APP_CONTEXT.repository_in_memory
+			case AppRepositoryType.PERSISTENT.value: repo = GLOBAL_APP_CONTEXT.repository_persistent
+			case _: repo = GLOBAL_APP_CONTEXT.repository_in_memory  # fallback
 
-	if task_id is not None:
-		task = repo.load_entity_scrap_task(task_id)
-		page_data["state"].update({
-			"page_view_mode": "task_detail",
-			"task": task,
-			"task_items": repo.read_scrap_task_items(task),
-		})
-	else:
-		page_data["state"].update({
-			"page_view_mode": "task_overview",
-			"tasks": repo.read_recent_tasks_all(GLOBAL_APP_CONTEXT.config.listing_limits.scraps),
-			"task_detail_link_base": url_for("page_state", repository=repository),
-		})
+		page_data["state"] = {
+			"uptime": GLOBAL_APP_CONTEXT.uptime,
+			"active_repository": repository,
+			"active_task_id": task_id,
+			"repositories": {
+				repository_type.value: url_for("page_state", repository=repository_type.value) for repository_type in AppRepositoryType
+			},
+		}
 
-	return render_template("state.html", page_data=page_data)
+		if task_id is not None:
+			task = repo.load_entity_scrap_task(task_id)
+			page_data["state"].update({
+				"page_view_mode": "task_detail",
+				"task": task,
+				"task_items": repo.read_scrap_task_items(task),
+			})
+		else:
+			page_data["state"].update({
+				"page_view_mode": "task_overview",
+				"tasks": repo.read_recent_tasks_all(GLOBAL_APP_CONTEXT.config.listing_limits.scraps),
+				"task_detail_link_base": url_for("page_state", repository=repository),
+			})
+
+		return render_template("state.html", page_data=page_data)
+	except Exception as ex:
+		return render_exception_page(ex, page_data)
 
 
 @app.route("/scrap/", methods=["GET", "POST"])
@@ -141,8 +144,8 @@ def page_scrap():
 					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_youtube_dl(urls))
 
 			case ("POST", "ftp"):
-				tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(TaskType.YOUTUBE_DL))
-				# tasks.extend([GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
+				# tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(TaskType.YOUTUBE_DL))
+				tasks.extend([GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
 
 		for task in tasks:
 			GLOBAL_APP_CONTEXT.task_executor.submit(task)
@@ -162,7 +165,7 @@ def page_view(view_source: str):
 			case ViewSources.ROUMEN_MASO.value: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
 			case _: raise ValueError(f"Invalid view type '{view_source}'.")
 
-		items_limit = 3 + 0 * GLOBAL_APP_CONTEXT.config.listing_limits.images
+		items_limit = GLOBAL_APP_CONTEXT.config.listing_limits.images
 
 		items = GLOBAL_APP_CONTEXT.repository_persistent.read_recent_scrap_task_items(task_def, items_limit)
 

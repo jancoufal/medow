@@ -1,5 +1,6 @@
 import logging
 from logging import Logger, basicConfig
+from pathlib import Path
 import sqlite3
 from typing import List
 
@@ -145,6 +146,8 @@ def migrate():
 	# roumen_maso/2024/04/balvan.jpg
 	# roumen_kecy/2024/04/Dopln_prislovi.jpg
 	def local_path_migrate(old_local_path: str) -> str:
+		op = Path(old_local_path)
+		# TODO: change path structure
 		if old_local_path.startswith("roumen-maso/"):
 			return TaskType.ROUMEN_MASO.value + old_local_path.removeprefix("roumen-maso")
 		if old_local_path.startswith("roumen/"):
@@ -166,6 +169,7 @@ def migrate():
 					destination_path=local_path_migrate(r.local_path),
 					exception_type=None,
 					exception_value=None,
+					sync_status=TaskSyncStatusEnum.NOT_SYNCED.value,
 				))
 
 		for r in src_data.fails:
@@ -181,6 +185,7 @@ def migrate():
 					destination_path=None,
 					exception_type=error_map[r.exc_type],
 					exception_value=r.exc_value,
+					sync_status=TaskSyncStatusEnum.IGNORE.value,
 				))
 		return task_items
 

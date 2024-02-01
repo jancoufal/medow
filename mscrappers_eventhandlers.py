@@ -5,7 +5,7 @@ from mrepository import Repository
 from mrepository_entities import MTaskE, TaskStatusEnum, MTaskItemE
 
 from mscrappers_api import TaskEvents
-from mrepository_entities import TaskClassAndType
+from mrepository_entities import TaskClassAndType, TaskSyncStatusEnum
 
 
 class TaskEventLogger(TaskEvents):
@@ -38,11 +38,12 @@ class TaskEventLogger(TaskEvents):
 
 
 class TaskEventRepositoryWriter(TaskEvents):
-	def __init__(self, repository: Repository, task_def: TaskClassAndType):
+	def __init__(self, repository: Repository, task_def: TaskClassAndType, success_task_sync_status: TaskSyncStatusEnum):
 		self._repository = repository
 		self._task_def = task_def
 		self._entity_task = None
 		self._entity_task_item = None
+		self._success_task_sync_status = success_task_sync_status
 
 	@staticmethod
 	def _get_current_timestamp() -> str:
@@ -92,7 +93,8 @@ class TaskEventRepositoryWriter(TaskEvents):
 			item_name=item_name,
 			destination_path=None,
 			exception_type=None,
-			exception_value=None
+			exception_value=None,
+			sync_status=TaskSyncStatusEnum.IGNORE.value,
 		)
 		pk_id = self._repository.save_entity(self._entity_task_item, True)
 		self._entity_task_item.pk_id = pk_id
@@ -105,6 +107,7 @@ class TaskEventRepositoryWriter(TaskEvents):
 		self._entity_task_item.status = TaskStatusEnum.COMPLETED.value
 		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.destination_path = destination_path
+		self._entity_task_item.sync_status = self._success_task_sync_status.value
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_success += 1
 
@@ -113,5 +116,6 @@ class TaskEventRepositoryWriter(TaskEvents):
 		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.exception_type = ex.__class__.__name__
 		self._entity_task_item.exception_value = str(ex)
+		self._entity_task_item.sync_status = TaskSyncStatusEnum.IGNORE.value
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_fail += 1

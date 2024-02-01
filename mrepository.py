@@ -136,20 +136,14 @@ class Repository(RepositoryInterface):
 				select ti.*
 				from {_Table.TASK.value} t
 				inner join {_Table.TASK_ITEM.value} ti
-					on ti.task_id=t.pk_id and ti.status=:source_item_status
+					on ti.task_id=t.pk_id and ti.sync_status=:sync_status
 				where t.task_class=:task_class
 					and t.task_type=:task_type
-					and not exists (
-						select 1
-						from {_Table.TASK_ITEM.value} iti
-						inner join {_Table.TASK.value} it on it.pk_id=iti.task_id
-						where iti.pk_id=ti.ref_id and it.task_class=:sync_task_class and it.task_type=:task_type)
 				order by ti.pk_id desc""",
 			binds={
-				"source_item_status": TaskStatusEnum.COMPLETED.value,
 				"task_class": TaskClass.SCRAP.value,
 				"task_type": task_def.typ.value,
-				"sync_task_class": task_def.cls.value,
+				"sync_status": TaskSyncStatusEnum.NOT_SYNCED.value,
 			},
 			row_mapper=lambda rs: MTaskItemE(*rs)
 		)

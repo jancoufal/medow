@@ -32,6 +32,7 @@ class RepositoryInstaller(object):
 				destination_path TEXT,
 				exception_type TEXT,
 				exception_value TEXT,
+				sync_status TEXT,
 				FOREIGN KEY (task_id) REFERENCES scrap_task(pk_id)
 			);""")
 

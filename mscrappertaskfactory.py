@@ -13,7 +13,7 @@ import bs4
 
 from mconfig import Config, ConfigScrapperRoumen, ConfigFtp
 from mrepository import Repository
-from mrepository_entities import TaskClassAndType, TaskClass, TaskType, MTaskItemE
+from mrepository_entities import TaskClassAndType, TaskClass, TaskType, MTaskItemE, TaskSyncStatusEnum
 from mscrappers_api import TaskEvents, TaskEventDispatcher
 from mscrappers_eventhandlers import TaskEventLogger, TaskEventRepositoryWriter
 from mformatters import Formatter
@@ -26,11 +26,15 @@ class TaskFactory(object):
 		self._repository_persistent = repository_persistent
 		self._repository_in_memory = repository_in_memory
 
-	def _create_event_handler(self, task_def: TaskClassAndType):
+	def _create_event_handler(
+			self,
+			task_def: TaskClassAndType,
+			success_task_sync_status: TaskSyncStatusEnum = TaskSyncStatusEnum.NOT_SYNCED
+	):
 		return TaskEventDispatcher((
 			TaskEventLogger(self._logger.getChild("event"), task_def),
-			TaskEventRepositoryWriter(self._repository_in_memory, task_def),
-			TaskEventRepositoryWriter(self._repository_persistent, task_def),
+			TaskEventRepositoryWriter(self._repository_in_memory, task_def, success_task_sync_status),
+			TaskEventRepositoryWriter(self._repository_persistent, task_def, success_task_sync_status),
 		))
 
 	def create_task_dummy(self, description: str):
@@ -71,7 +75,7 @@ class TaskFactory(object):
 	def create_task_ftp_sync(self, task_type: TaskType):
 		task_def = TaskClassAndType(TaskClass.SYNC, task_type)
 		return SyncToFtp(
-			self._create_event_handler(task_def),
+			self._create_event_handler(task_def, TaskSyncStatusEnum.IGNORE),
 			self._logger.getChild(str(task_def)),
 			task_def,
 			self._repository_persistent,
@@ -322,6 +326,10 @@ class SyncToFtp(object):
 			with open(self._storage_dir / lp, "rb") as fp:
 				ftp.storbinary("STOR " + lp.name, fp=fp, blocksize=self._ftp_config.blocksize)
 
+			item.sync_status = TaskSyncStatusEnum.SYNCED.value
+			self._repository.update_entity(item)
+
 			self._event.on_item_finish(lp.name)
+
 		except Exception as ex:
 			self._event.on_item_error(ex)
