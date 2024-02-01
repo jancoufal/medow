@@ -146,8 +146,6 @@ def migrate():
 	# roumen_maso/2024/04/balvan.jpg
 	# roumen_kecy/2024/04/Dopln_prislovi.jpg
 	def local_path_migrate(old_local_path: str) -> str:
-		op = Path(old_local_path)
-		# TODO: change path structure
 		if old_local_path.startswith("roumen-maso/"):
 			return TaskType.ROUMEN_MASO.value + old_local_path.removeprefix("roumen-maso")
 		if old_local_path.startswith("roumen/"):
