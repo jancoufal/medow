@@ -1,0 +1,14 @@
+title: "Shopping List"
+sections:
+  - title: "Groceries"
+    items:
+      - name: "Milk"
+        quantity: 2
+      - name: "Eggs"
+        quantity: 12
+  - title: "Electronics"
+    items:
+      - name: "Laptop"
+        quantity: 1
+      - name: "Smartphone"
+        quantity: 2
