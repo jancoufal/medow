@@ -168,3 +168,52 @@ class Repository(RepositoryInterface):
 			row_mapper=lambda rs: MTaskItemE(*rs)
 		)
 
+
+@dataclass
+class _RepositoryInMemoryTable(object):
+	data: dict[int, MTaskE | MTaskItemE] = {}
+	pk_id_sequence: int = 0
+
+	def get_next_id_if_none(self, existing_id: int):
+		if existing_id is not None:
+			return existing_id
+		self.pk_id_sequence += 1
+		return self.pk_id_sequence
+
+
+class RepositoryInMemory(RepositoryInterface):
+	def __init__(self, logger: Logger):
+		self._logger = logger
+		self._tasks = _RepositoryInMemoryTable()
+		self._task_items = _RepositoryInMemoryTable()
+
+	def get_table_for_entity(self, entity: MTaskE | MTaskItemE) -> _RepositoryInMemoryTable:
+		match entity:
+			case MTaskE(): return self._tasks
+			case MTaskItemE(): return self._task_items
+			case _: raise ValueError(f"Unknown entity {entity}.")
+
+	def save_entity(self, entity: MTaskE | MTaskItemE, get_last_id: bool) -> int | None:
+		t = self.get_table_for_entity(entity)
+		entity.pk_id = t.get_next_id_if_none(entity.pk_id)
+		t.data[entity.pk_id] = entity
+		return entity.pk_id
+
+	def update_entity(self, entity: MTaskE | MTaskItemE) -> None:
+		t = self.get_table_for_entity(entity)
+		t.data[entity.pk_id] = entity
+
+	def load_entity_task(self, pk_id: int) -> MTaskE | None:
+		return self._tasks.data[pk_id]
+
+	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
+		return list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:item_limit]
+
+	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
+		return list(filter(lambda item: item.task_id == task_entity.pk_id, self._task_items.data.values()))
+
+	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
+		raise NotImplementedError("In-memory repository does not offer list of recent task items.")
+
+	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
+		raise NotImplementedError("In-memory repository does not offer list of non-synced items.")
