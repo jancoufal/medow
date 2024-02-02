@@ -155,7 +155,11 @@ class TaskRoumen(object):
 
 					remote_file_url = f"{self._config_scrapper.img_base}/{image_name_to_download}"
 					# r = requests.get(remote_file_url, headers=TaskRoumen.REQUEST_HEADERS)
-					urllib.request.urlretrieve(remote_file_url, filename=str(destination_path / image_name_to_download))
+					urllib.request.urlretrieve(
+						remote_file_url,
+						filename=str(destination_path / image_name_to_download),
+						timeout=self._config_scrapper.request_timeout_seconds,
+					)
 
 					self._event.on_item_finish(str(relative_file_path))
 

@@ -23,11 +23,13 @@ scrappers:
   storage_path: "static/scrap/"
   storage_path_for_static: "scrap/"
   roumen_kecy:
+    request_timeout_seconds: 5
     base_url: "https://www.rouming.cz"
     img_base: "https://www.rouming.cz/upload"
     href_needle: "roumingShow.php"
     url_params: {}
   roumen_maso:
+    request_timeout_seconds: 5
     base_url: "https://www.roumenovomaso.cz"
     img_base: "https://www.roumenovomaso.cz/upload"
     href_needle: "masoShow.php"
