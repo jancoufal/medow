@@ -58,6 +58,10 @@ class MTaskE:
 		return Formatter.str_to_ts_safe(TimestampFormat.DATETIME_MS, self.ts_start, None)
 
 	@property
+	def start_date(self) -> datetime | None:
+		return Formatter.str_to_ts_safe(TimestampFormat.DATETIME, self.ts_start, None)
+
+	@property
 	def end_as_timestamp(self) -> datetime | None:
 		return Formatter.str_to_ts_safe(TimestampFormat.DATETIME_MS, self.ts_end, None)
 
@@ -109,6 +113,10 @@ class MTaskItemE:
 	@property
 	def start_as_timestamp(self) -> datetime | None:
 		return Formatter.str_to_ts_safe(TimestampFormat.DATETIME_MS, self.ts_start, None)
+
+	@property
+	def start_date(self) -> datetime | None:
+		return Formatter.str_to_ts_safe(TimestampFormat.DATETIME, self.ts_start, None)
 
 	@property
 	def end_as_timestamp(self) -> datetime | None:
