@@ -162,6 +162,7 @@ def page_scrap():
 				tasks.extend([app_context.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
 
 		for task in tasks:
+			app_context.logger.debug(f"Submitting task {task.__class__.__name__} to task executor {app_context.task_executor!s}.")
 			app_context.task_executor.submit(task)
 
 	except Exception as ex:
