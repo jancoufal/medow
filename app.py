@@ -59,7 +59,7 @@ def get_page_data(page_values: dict = None):
 		},
 	}
 
-	if ctx.config.app_debug:
+	if app_context.config.app_debug:
 		page_data.update({
 			"network": {
 				"hostname": socket.gethostname(),
