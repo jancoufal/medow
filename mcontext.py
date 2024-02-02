@@ -45,6 +45,9 @@ class AppContext(object):
 		repository_persistent = repository_factory.create(RepositoryType.PERSISTENT)
 		repository_in_memory = repository_factory.create(RepositoryType.IN_MEMORY)
 
+		task_executor = ThreadPoolExecutor(max_workers=config.worker_thread.max_workers)
+		logger.debug(f"Task executor {task_executor!s} created.")
+
 		return cls(
 			app=flask_app,
 			start_time=datetime.now(),
@@ -53,7 +56,7 @@ class AppContext(object):
 			repository_persistent=repository_persistent,
 			repository_in_memory=repository_in_memory,
 			task_factory=TaskFactory(logger.getChild("task"), config, repository_persistent, repository_in_memory),
-			task_executor=ThreadPoolExecutor(max_workers=config.worker_thread.max_workers),
+			task_executor=task_executor,
 		)
 
 	@property
