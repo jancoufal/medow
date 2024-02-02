@@ -43,6 +43,7 @@ class ConfigListingLimits:
 @dataclass
 class ConfigScrapperRoumen:
 	request_timeout_seconds: int
+	request_chunk_size: int
 	base_url: str
 	img_base: str
 	href_needle: str
