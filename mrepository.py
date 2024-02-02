@@ -26,11 +26,31 @@ class _Table(Enum):
 
 class RepositoryInterface(ABC):
 	@abstractmethod
-	def save_entity(self, entity: MTaskE | MTaskItemE, get_last_id: bool):
+	def save_entity(self, entity: MTaskE | MTaskItemE, get_last_id: bool) -> int | None:
 		pass
 
 	@abstractmethod
 	def update_entity(self, entity: MTaskE | MTaskItemE) -> None:
+		pass
+
+	@abstractmethod
+	def load_entity_task(self, pk_id: int) -> MTaskE | None:
+		pass
+
+	@abstractmethod
+	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
+		pass
+
+	@abstractmethod
+	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
+		pass
+
+	@abstractmethod
+	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
+		pass
+
+	@abstractmethod
+	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
 		pass
 
 
@@ -90,7 +110,7 @@ class Repository(RepositoryInterface):
 		self._logger.debug(f"Updating entity {entity.__class__.__name__}.")
 		self._sqlite_api.do_with_connection(_updater)
 
-	def load_entity_scrap_task(self, pk_id: int) -> MTaskE | None:
+	def load_entity_task(self, pk_id: int) -> MTaskE | None:
 		self._logger.debug(f"Reading entity 'MScrapTaskE' for pk_id '{pk_id}'.")
 		return self._sqlite_api.read(
 			f"select * from {_Table.TASK.value} where pk_id=:pk_id",
@@ -106,7 +126,7 @@ class Repository(RepositoryInterface):
 			row_mapper=lambda rs: MTaskE(*rs)
 		)
 
-	def read_scrap_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
+	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Table.TASK_ITEM.value} where task_id=:task_id order by pk_id asc",
@@ -114,7 +134,7 @@ class Repository(RepositoryInterface):
 			row_mapper=lambda rs: MTaskItemE(*rs)
 		)
 
-	def read_recent_scrap_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
+	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading recent entities 'MScrapTaskE' for task '{task_def}' limited to {item_limit} items.")
 		return self._sqlite_api.read(
 			sql_stmt=f"""

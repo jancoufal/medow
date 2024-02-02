@@ -104,11 +104,11 @@ def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int
 		}
 
 		if task_id is not None:
-			task = repo.load_entity_scrap_task(task_id)
+			task = repo.load_entity_task(task_id)
 			page_data["state"].update({
 				"page_view_mode": "task_detail",
 				"task": task,
-				"task_items": repo.read_scrap_task_items(task),
+				"task_items": repo.read_task_items(task),
 			})
 		else:
 			page_data["state"].update({
@@ -171,7 +171,7 @@ def page_view(view_source: str):
 			case ViewSources.ROUMEN_MASO.value: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
 			case _: raise ValueError(f"Invalid view type '{view_source}'.")
 
-		items = app_context.repository_persistent.read_recent_scrap_task_items(
+		items = app_context.repository_persistent.read_recent_task_items(
 			task_def,
 			app_context.config.listing_limits.images
 		)

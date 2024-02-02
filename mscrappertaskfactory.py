@@ -171,7 +171,7 @@ class TaskRoumen(object):
 			self._event.on_error(ex)
 
 	def _get_image_names_to_download(self) -> List[str]:
-		recent_items = self._repository.read_recent_scrap_task_items(self._task_def, TaskRoumen.RECENT_ITEMS_LIMIT)
+		recent_items = self._repository.read_recent_task_items(self._task_def, TaskRoumen.RECENT_ITEMS_LIMIT)
 		recent_items_names = set(i.item_name for i in recent_items)
 		remote_images = self._scrap_image_names_from_website()
 		remote_images = [_ for _ in remote_images if _ not in recent_items_names]
