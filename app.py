@@ -11,6 +11,7 @@ from mrepository_entities import TaskClassAndType, TaskClass, TaskType
 
 CONFIG_FILE = "config.yaml"
 app = Flask(__name__)
+app.ctx = None
 
 
 class HtmlEntitySymbol(Enum):

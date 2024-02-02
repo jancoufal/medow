@@ -123,7 +123,7 @@ def migrate():
 			task_type=source_to_task_type_map[r.source],
 			ts_start=f"{r.ts_start_date} {r.ts_start_time}",
 			ts_end=f"{r.ts_end_date} {r.ts_end_time}" if r.ts_end_date is not None else None,
-			status=r.status,
+			status=TaskStatusEnum.COMPLETED.value,
 			item_count_success=r.count_success if r.count_success is not None else 0,
 			item_count_fail=r.count_fail if r.count_fail is not None else 0,
 			exception_type=error_map[r.exc_type] if r.exc_type is not None else None,
