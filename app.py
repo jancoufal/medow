@@ -70,11 +70,13 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 
 @app.route("/")
 def page_index():
+	global GLOBAL_APP_CONTEXT
 	return render_template("home.html", page_data=get_page_data(GLOBAL_APP_CONTEXT))
 
 
 @app.route("/griffin/")
 def page_griffin():
+	global GLOBAL_APP_CONTEXT
 	return render_template("griffin.html", page_data=get_page_data(GLOBAL_APP_CONTEXT))
 
 
@@ -82,6 +84,7 @@ def page_griffin():
 @app.route("/state/<repository>/")
 @app.route("/state/<repository>/<task_id>/")
 def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int = None):
+	global GLOBAL_APP_CONTEXT
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	try:
 		match repository:
@@ -119,6 +122,7 @@ def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int
 
 @app.route("/scrap/", methods=["GET", "POST"])
 def page_scrap():
+	global GLOBAL_APP_CONTEXT
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	try:
 		# debug
@@ -158,6 +162,7 @@ def page_scrap():
 
 @app.route("/view/<view_source>/")
 def page_view(view_source: str):
+	global GLOBAL_APP_CONTEXT
 	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"view_source": view_source})
 	try:
 		match view_source:
@@ -181,6 +186,7 @@ def page_view(view_source: str):
 
 @app.route("/throw_error")
 def page_throw_error():
+	global GLOBAL_APP_CONTEXT
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	try:
 		raise RuntimeError("I'm runtime error!")
@@ -190,6 +196,7 @@ def page_throw_error():
 
 @app.errorhandler(404)
 def page_not_found(e):
+	global GLOBAL_APP_CONTEXT
 	page_data = get_page_data(GLOBAL_APP_CONTEXT)
 	page_data["error"] = {
 		"code": e.code,
@@ -212,8 +219,8 @@ def render_exception_page(ex: Exception, page_data: dict):
 	return render_template("exception.html", page_data=page_data)
 
 
-if __name__ == "__main__":
-	ctx = AppContext.create(flask_app=app, config_file=CONFIG_FILE)
+def init_app_context(flask_app: Flask) -> AppContext:
+	ctx = AppContext.create(flask_app=flask_app, config_file=CONFIG_FILE)
 
 	ctx.logger.info(f"App context created using config '{CONFIG_FILE}'.")
 	ctx.logger.debug(f"{ctx.config=}")
@@ -224,10 +231,17 @@ if __name__ == "__main__":
 	if ctx.config.server.port is None:
 		raise ValueError(f"Server port not specified in '{CONFIG_FILE}'")
 
+	global GLOBAL_APP_CONTEXT
 	GLOBAL_APP_CONTEXT = ctx
 
+	return GLOBAL_APP_CONTEXT
+
+
+if __name__ == "__main__":
+	GLOBAL_APP_CONTEXT = init_app_context(app)
+
 	app.run(
-		host=ctx.config.server.host,
-		port=ctx.config.server.port,
-		debug=ctx.config.server.debug
+		host=GLOBAL_APP_CONTEXT.config.server.host,
+		port=GLOBAL_APP_CONTEXT.config.server.port,
+		debug=GLOBAL_APP_CONTEXT.config.server.debug
 	)
