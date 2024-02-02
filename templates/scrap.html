@@ -37,7 +37,7 @@
 		<fieldset>
 			<div class="input-row">
 				<label for="url-list">YouTube-DL:</label>
-				<textarea id="url-list" name="url-list" cols="80" rows="10">https://www.youtube.com/watch?v=MV_3Dpw-BRY{{ page_data.request.args.get('url-list', '') }}</textarea>
+				<textarea id="url-list" name="url-list" cols="80" rows="10">{{ page_data.request.args.get('url-list', '') }}</textarea>
 			</div>
 			<div class="input-row">
 				<label for="download-submit">&#x21CA;</label>

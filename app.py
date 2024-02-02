@@ -28,17 +28,23 @@ class ViewSources(Enum):
 	ROUMEN_MASO = "roumen-maso"
 
 
-def get_page_data(ctx: AppContext, page_values: dict = None):
+def get_app_context() -> AppContext:
+	global GLOBAL_APP_CONTEXT
+	return GLOBAL_APP_CONTEXT
+
+
+def get_page_data(page_values: dict = None):
+	app_context = get_app_context()
 	page_data = {
-		"site": ctx.config.site_title,
+		"site": app_context.config.site_title,
 		"head": {
 			"less": url_for("static", filename="site.less"),
 		},
 		"page_values": page_values,
 		"current": {
 			"endpoint": None if request.endpoint is None else url_for(request.endpoint, **page_values if page_values is not None else {}),
-			"image_dir": url_for("static", filename=ctx.config.scrappers.storage_path_for_static),
-			"debug": ctx.config.app_debug,
+			"image_dir": url_for("static", filename=app_context.config.scrappers.storage_path_for_static),
+			"debug": app_context.config.app_debug,
 		},
 		"links": {
 			"griffin": url_for("page_griffin"),
@@ -51,7 +57,7 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 			{"name": "E", "href": url_for("page_throw_error"), },
 		],
 		"web_state": {
-			"uptime": ctx.uptime,
+			"uptime": app_context.uptime,
 			"python_version": sys.version,
 		},
 		"network": {
@@ -59,7 +65,7 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 			"socket.gethostbyname": socket.gethostbyname(socket.gethostname()),
 			"socket.gethostbyname (local)": socket.gethostbyname(socket.gethostname() + ".local"),
 		},
-		"config": str(ctx.config),
+		"config": str(app_context.config),
 	}
 
 	for s in ViewSources:
@@ -70,30 +76,28 @@ def get_page_data(ctx: AppContext, page_values: dict = None):
 
 @app.route("/")
 def page_index():
-	global GLOBAL_APP_CONTEXT
-	return render_template("home.html", page_data=get_page_data(GLOBAL_APP_CONTEXT))
+	return render_template("home.html", page_data=get_page_data())
 
 
 @app.route("/griffin/")
 def page_griffin():
-	global GLOBAL_APP_CONTEXT
-	return render_template("griffin.html", page_data=get_page_data(GLOBAL_APP_CONTEXT))
+	return render_template("griffin.html", page_data=get_page_data())
 
 
 @app.route("/state/")
 @app.route("/state/<repository>/")
 @app.route("/state/<repository>/<task_id>/")
 def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int = None):
-	global GLOBAL_APP_CONTEXT
-	page_data = get_page_data(GLOBAL_APP_CONTEXT)
+	app_context = get_app_context()
+	page_data = get_page_data()
 	try:
 		match repository:
-			case AppRepositoryType.IN_MEMORY.value: repo = GLOBAL_APP_CONTEXT.repository_in_memory
-			case AppRepositoryType.PERSISTENT.value: repo = GLOBAL_APP_CONTEXT.repository_persistent
-			case _: repo = GLOBAL_APP_CONTEXT.repository_in_memory  # fallback
+			case AppRepositoryType.IN_MEMORY.value: repo = app_context.repository_in_memory
+			case AppRepositoryType.PERSISTENT.value: repo = app_context.repository_persistent
+			case _: repo = app_context.repository_in_memory  # fallback
 
 		page_data["state"] = {
-			"uptime": GLOBAL_APP_CONTEXT.uptime,
+			"uptime": app_context.uptime,
 			"active_repository": repository,
 			"active_task_id": task_id,
 			"repositories": {
@@ -111,7 +115,7 @@ def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int
 		else:
 			page_data["state"].update({
 				"page_view_mode": "task_overview",
-				"tasks": repo.read_recent_tasks_all(GLOBAL_APP_CONTEXT.config.listing_limits.scraps),
+				"tasks": repo.read_recent_tasks_all(app_context.config.listing_limits.scraps),
 				"task_detail_link_base": url_for("page_state", repository=repository),
 			})
 
@@ -122,8 +126,8 @@ def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int
 
 @app.route("/scrap/", methods=["GET", "POST"])
 def page_scrap():
-	global GLOBAL_APP_CONTEXT
-	page_data = get_page_data(GLOBAL_APP_CONTEXT)
+	app_context = get_app_context()
+	page_data = get_page_data()
 	try:
 		# debug
 		page_data["request"] = {
@@ -138,21 +142,20 @@ def page_scrap():
 		match request.method, request.form.get("form", None):
 			case ("POST", "scrap"):
 				if request.form.get(f"source-{ViewSources.ROUMEN_KECY.value}", None) is not None:
-					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_roumen_kecy())
+					tasks.append(app_context.task_factory.create_task_roumen_kecy())
 				if request.form.get(f"source-{ViewSources.ROUMEN_MASO.value}", None) is not None:
-					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_roumen_maso())
+					tasks.append(app_context.task_factory.create_task_roumen_maso())
 
 			case ("POST", "yt_dl"):
 				if request.form.get("url-list", None) is not None:
 					urls = tuple(url.strip() for url in request.form.get("url-list", "").split())
-					tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_youtube_dl(urls))
+					tasks.append(app_context.task_factory.create_task_youtube_dl(urls))
 
 			case ("POST", "ftp"):
-				# tasks.append(GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(TaskType.YOUTUBE_DL))
-				tasks.extend([GLOBAL_APP_CONTEXT.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
+				tasks.extend([app_context.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
 
 		for task in tasks:
-			GLOBAL_APP_CONTEXT.task_executor.submit(task)
+			app_context.task_executor.submit(task)
 
 	except Exception as ex:
 		return render_exception_page(ex, page_data=page_data)
@@ -162,20 +165,21 @@ def page_scrap():
 
 @app.route("/view/<view_source>/")
 def page_view(view_source: str):
-	global GLOBAL_APP_CONTEXT
-	page_data = get_page_data(GLOBAL_APP_CONTEXT, {"view_source": view_source})
+	app_context = get_app_context()
+	page_data = get_page_data({"view_source": view_source})
 	try:
 		match view_source:
 			case ViewSources.ROUMEN_KECY.value: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_KECY)
 			case ViewSources.ROUMEN_MASO.value: task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
 			case _: raise ValueError(f"Invalid view type '{view_source}'.")
 
-		items_limit = GLOBAL_APP_CONTEXT.config.listing_limits.images
-
-		items = GLOBAL_APP_CONTEXT.repository_persistent.read_recent_scrap_task_items(task_def, items_limit)
+		items = app_context.repository_persistent.read_recent_scrap_task_items(
+			task_def,
+			app_context.config.listing_limits.images
+		)
 
 		page_data.update({
-			"base_path": url_for("static", filename=GLOBAL_APP_CONTEXT.config.scrappers.storage_path_for_static),
+			"base_path": url_for("static", filename=app_context.config.scrappers.storage_path_for_static),
 			"task_items": [item for item in items if item.destination_path is not None]
 		})
 
@@ -186,8 +190,7 @@ def page_view(view_source: str):
 
 @app.route("/throw_error")
 def page_throw_error():
-	global GLOBAL_APP_CONTEXT
-	page_data = get_page_data(GLOBAL_APP_CONTEXT)
+	page_data = get_page_data()
 	try:
 		raise RuntimeError("I'm runtime error!")
 	except RuntimeError as ex:
@@ -196,8 +199,7 @@ def page_throw_error():
 
 @app.errorhandler(404)
 def page_not_found(e):
-	global GLOBAL_APP_CONTEXT
-	page_data = get_page_data(GLOBAL_APP_CONTEXT)
+	page_data = get_page_data()
 	page_data["error"] = {
 		"code": e.code,
 		"name": e.name,
