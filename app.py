@@ -6,7 +6,8 @@ from enum import Enum
 from flask import Flask, url_for, render_template, request
 
 import menvloader
-from mcontext import AppRepositoryType, AppContext
+from mcontext import AppContext
+from mrepository import RepositoryType
 from mrepository_entities import TaskClassAndType, TaskClass, TaskType
 
 CONFIG_FILE = "config.yaml"
@@ -49,7 +50,7 @@ def get_page_data(page_values: dict = None):
 		},
 		"navigation": [
 			{"name": HtmlEntitySymbol.HOME.value, "href": url_for("page_index"), },
-			{"name": HtmlEntitySymbol.STATE.value, "href": url_for("page_state", repository=AppRepositoryType.IN_MEMORY.value), },
+			{"name": HtmlEntitySymbol.STATE.value, "href": url_for("page_state", repository=RepositoryType.IN_MEMORY.value), },
 			# {"name": HtmlEntitySymbol.STATS.value, "href": url_for("page_stats"), },
 			{"name": HtmlEntitySymbol.SCRAP.value, "href": url_for("page_scrap"), },
 			{"name": "E", "href": url_for("page_throw_error"), },
@@ -58,13 +59,17 @@ def get_page_data(page_values: dict = None):
 			"uptime": app_context.uptime,
 			"python_version": sys.version,
 		},
-		"network": {
-			"hostname": socket.gethostname(),
-			"socket.gethostbyname": socket.gethostbyname(socket.gethostname()),
-			"socket.gethostbyname (local)": socket.gethostbyname(socket.gethostname() + ".local"),
-		},
-		"config": str(app_context.config),
 	}
+
+	if ctx.config.app_debug:
+		page_data.update({
+			"network": {
+				"hostname": socket.gethostname(),
+				"socket.gethostbyname": socket.gethostbyname(socket.gethostname()),
+				"socket.gethostbyname (local)": socket.gethostbyname(socket.gethostname() + ".local"),
+			},
+			"config": str(app_context.config),
+		})
 
 	for s in ViewSources:
 		page_data["navigation"].append({"name": s.value, "href": url_for("page_view", view_source=s.value)})
@@ -85,13 +90,13 @@ def page_griffin():
 @app.route("/state/")
 @app.route("/state/<repository>/")
 @app.route("/state/<repository>/<task_id>/")
-def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int = None):
+def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = None):
 	app_context = get_app_context()
 	page_data = get_page_data()
 	try:
 		match repository:
-			case AppRepositoryType.IN_MEMORY.value: repo = app_context.repository_in_memory
-			case AppRepositoryType.PERSISTENT.value: repo = app_context.repository_persistent
+			case RepositoryType.IN_MEMORY.value: repo = app_context.repository_in_memory
+			case RepositoryType.PERSISTENT.value: repo = app_context.repository_persistent
 			case _: repo = app_context.repository_in_memory  # fallback
 
 		page_data["state"] = {
@@ -99,7 +104,7 @@ def page_state(repository: str = AppRepositoryType.IN_MEMORY.value, task_id: int
 			"active_repository": repository,
 			"active_task_id": task_id,
 			"repositories": {
-				repository_type.value: url_for("page_state", repository=repository_type.value) for repository_type in AppRepositoryType
+				repository_type.value: url_for("page_state", repository=repository_type.value) for repository_type in RepositoryType
 			},
 		}
 

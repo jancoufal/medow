@@ -1,5 +1,6 @@
 """
-persistent repository implementation
+persistent repository implementation.
+RepositoryFactory is in the end of the file.
 """
 
 import sqlite3
@@ -10,6 +11,11 @@ from typing import List
 
 from mrepository_entities import *
 from msqlite_api import SqliteApi
+
+
+class RepositoryType(Enum):
+	IN_MEMORY = "in-memory"
+	PERSISTENT = "persistent"
 
 
 class _Table(Enum):
@@ -24,7 +30,7 @@ class _Table(Enum):
 			case _: raise ValueError(f"Unknown entity {entity}.")
 
 
-class RepositoryInterface(ABC):
+class Repository(ABC):
 	@abstractmethod
 	def save_entity(self, entity: MTaskE | MTaskItemE, get_last_id: bool) -> int | None:
 		pass
@@ -54,7 +60,7 @@ class RepositoryInterface(ABC):
 		pass
 
 
-class Repository(RepositoryInterface):
+class RepositorySqlite3(Repository):
 	def __init__(self, logger: Logger, sqlite_api: SqliteApi):
 		super().__init__()
 		self._logger = logger
@@ -169,10 +175,10 @@ class Repository(RepositoryInterface):
 		)
 
 
-@dataclass
 class _RepositoryInMemoryTable(object):
-	data: dict[int, MTaskE | MTaskItemE] = {}
-	pk_id_sequence: int = 0
+	def __init__(self):
+		self.data = {}
+		self.pk_id_sequence = 0
 
 	def get_next_id_if_none(self, existing_id: int):
 		if existing_id is not None:
@@ -181,7 +187,7 @@ class _RepositoryInMemoryTable(object):
 		return self.pk_id_sequence
 
 
-class RepositoryInMemory(RepositoryInterface):
+class RepositoryInMemory(Repository):
 	def __init__(self, logger: Logger):
 		self._logger = logger
 		self._tasks = _RepositoryInMemoryTable()
@@ -204,10 +210,10 @@ class RepositoryInMemory(RepositoryInterface):
 		t.data[entity.pk_id] = entity
 
 	def load_entity_task(self, pk_id: int) -> MTaskE | None:
-		return self._tasks.data[pk_id]
+		return self._tasks.data[int(pk_id)]
 
 	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
-		return list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:item_limit]
+		return list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:int(item_limit)]
 
 	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
 		return list(filter(lambda item: item.task_id == task_entity.pk_id, self._task_items.data.values()))
@@ -217,3 +223,18 @@ class RepositoryInMemory(RepositoryInterface):
 
 	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
 		raise NotImplementedError("In-memory repository does not offer list of non-synced items.")
+
+
+class RepositoryFactory(object):
+	def __init__(self, logger: Logger, sqlite_api: SqliteApi):
+		self._logger = logger
+		self._sqlite_api = sqlite_api
+
+	def create(self, repository_type: RepositoryType) -> Repository:
+		match repository_type:
+			case RepositoryType.IN_MEMORY:
+				return RepositoryInMemory(self._logger.getChild(repository_type.value))
+			case RepositoryType.PERSISTENT:
+				return RepositorySqlite3(self._logger.getChild(repository_type.value), self._sqlite_api)
+			case _:
+				raise ValueError(f"Unknown repository type {repository_type.value}")

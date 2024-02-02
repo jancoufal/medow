@@ -1,23 +1,15 @@
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import datetime
-from enum import Enum
 from logging import Logger, basicConfig, getLogger
-from typing import Callable
 
 from flask import Flask
 
 from mconfig import Config
 from mformatters import Formatter
-from mrepository import Repository
-from mrepository_installer import RepositoryInstaller
+from mrepository import RepositoryFactory, RepositoryType, Repository
 from mscrappertaskfactory import TaskFactory
 from msqlite_api import SqliteApi
-
-
-class AppRepositoryType(Enum):
-	IN_MEMORY = "in-memory"
-	PERSISTENT = "persistent"
 
 
 @dataclass
@@ -45,22 +37,13 @@ class AppContext(object):
 		logger.info(f"Logger created with level '{config.logger.level}'.")
 		logger.info(f"Config '{config_file}' loaded.")
 
-		def create_repository(repository_logger: Logger, creator: Callable[[Logger], SqliteApi]) -> Repository:
-			repository_logger.info(f"Creating repository.")
-			return Repository(repository_logger.getChild("repository"), creator(repository_logger.getChild("sqlapi")))
-
-		repository_persistent = create_repository(
-			logger.getChild(AppRepositoryType.PERSISTENT.value),
-			lambda _logger: SqliteApi.create_persistent(_logger, config.persistence.sqlite_datafile)
+		repository_factory = RepositoryFactory(
+			logger.getChild("repository"),
+			SqliteApi(logger.getChild("sqlite3"), config.persistence.sqlite_datafile)
 		)
 
-		repository_in_memory = create_repository(
-			logger.getChild(AppRepositoryType.IN_MEMORY.value),
-			lambda _logger: SqliteApi.create_in_memory(_logger)
-		)
-
-		logger.info(f"Creating tables in in-memory repository.")
-		RepositoryInstaller(repository_in_memory.get_sqlite_api()).create_tables()
+		repository_persistent = repository_factory.create(RepositoryType.PERSISTENT)
+		repository_in_memory = repository_factory.create(RepositoryType.IN_MEMORY)
 
 		return cls(
 			app=flask_app,
