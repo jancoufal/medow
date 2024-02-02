@@ -204,19 +204,21 @@ class RepositoryInMemory(Repository):
 		t = self.get_table_for_entity(entity)
 		entity.pk_id = t.get_next_id_if_none(entity.pk_id)
 		t.data[entity.pk_id] = entity
+		self._logger.debug(f"Entity {entity.__class__.__name__} count: {len(t.data)}.")
 		return entity.pk_id
 
 	def update_entity(self, entity: MTaskE | MTaskItemE) -> None:
 		self._logger.debug(f"Updating entity {entity.__class__.__name__}.")
 		t = self.get_table_for_entity(entity)
 		t.data[entity.pk_id] = entity
+		self._logger.debug(f"Entity {entity.__class__.__name__} count: {len(t.data)}.")
 
 	def load_entity_task(self, pk_id: int) -> MTaskE | None:
 		self._logger.debug(f"Reading entity 'MTaskE' for pk_id '{pk_id}'.")
 		return self._tasks.data[int(pk_id)]
 
 	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
-		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items.")
+		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items (total items {len(self._tasks.data)}).")
 		return list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:int(item_limit)]
 
 	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
