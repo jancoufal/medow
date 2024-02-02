@@ -76,6 +76,21 @@ class MTaskE:
 		s, f = self.item_count_success, self.item_count_fail
 		return Formatter.percentage_str_safe(s, s+f, Formatter.NOT_AVAILABLE_STR)
 
+	@property
+	def task_def_html(self):
+		task_class_mapper = {
+			TaskClass.DUMMY.value: ".",
+			TaskClass.SCRAP.value: "&#x21ca;",  # two arrows down
+			TaskClass.SYNC.value: "&#x21c8;",  # two arrows up
+		}
+		task_type_mapper = {
+			TaskType.DUMMY.value: ".",
+			TaskType.ROUMEN_KECY.value: "rk",
+			TaskType.ROUMEN_MASO.value: "rm",
+			TaskType.YOUTUBE_DL.value: "yt",
+		}
+		return task_class_mapper.get(self.task_class, "?") + "/" + task_type_mapper.get(self.task_type, "?")
+
 
 @dataclass
 class MTaskItemE:

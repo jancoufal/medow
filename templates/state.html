@@ -22,8 +22,8 @@
 		<table class="scrap-results">
 			<tr>
 				<th>#id</th>
-				<th>Task class/type</th>
-				<th>State</th>
+				<th>Task</th>
+				<th>Status</th>
 				<th>Age</th>
 				<th>Time Taken</th>
 				<th>Items succ/fail</th>
@@ -31,9 +31,9 @@
 {#				<th>Error message</th>#}
 			</tr>
 			{%- for task in page_data.state.tasks -%}
-			<tr class="state-{{ task.status }}">
+			<tr class="state-{{ task.status }} task-{{ task.task_class }}">
 				<td><a href="{{- page_data.state.task_detail_link_base ~ task.pk_id ~ '/' -}}">{{ task.pk_id }}</a></td>
-				<td style="white-space: nowrap;">{{ task.task_class }}/{{ task.task_type }}</td>
+				<td style="white-space: nowrap;">{{ task.task_def_html|safe }}</td>
 				<td>{{ task.status }}</td>
 				<td style="white-space: nowrap;">{{ task.age }}</td>
 				<td style="white-space: nowrap;">{{ task.time_taken }}</td>
