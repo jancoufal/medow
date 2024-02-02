@@ -24,6 +24,7 @@
 				<th>#id</th>
 				<th>Task</th>
 				<th>Status</th>
+				<th>Date</th>
 				<th>Age</th>
 				<th>Time Taken</th>
 				<th>Items succ/fail</th>
@@ -35,6 +36,7 @@
 				<td><a href="{{- page_data.state.task_detail_link_base ~ task.pk_id ~ '/' -}}">{{ task.pk_id }}</a></td>
 				<td style="white-space: nowrap;">{{ task.task_def_html|safe }}</td>
 				<td>{{ task.status }}</td>
+				<td>{{ task.start_as_timestamp }}</td>
 				<td style="white-space: nowrap;">{{ task.age }}</td>
 				<td style="white-space: nowrap;">{{ task.time_taken }}</td>
 				<td style="white-space: nowrap;">
@@ -56,6 +58,7 @@
 			<tr><th>Task class</th><td style="white-space: nowrap;">{{ page_data.state.task.task_class }}</td></tr>
 			<tr><th>Task type</th><td style="white-space: nowrap;">{{ page_data.state.task.task_type }}</td></tr>
 			<tr><th>State</th><td>{{ page_data.state.task.status }}</td></tr>
+			<tr><th>Date</th><td>{{ page_data.state.task.start_as_timestamp }}</td></tr>
 			<tr><th>Age</th><td style="white-space: nowrap;">{{ page_data.state.task.age }}</td></tr>
 			<tr><th>Time Taken</th><td style="white-space: nowrap;">{{ page_data.state.task.time_taken }}</td></tr>
 			<tr><th>Items succeeded/failed</th><td style="white-space: nowrap;">
@@ -74,6 +77,7 @@
 			<tr>
 				<th>#id</th>
 				<th>State</th>
+				<th>Date</th>
 				<th>Age</th>
 				<th>Time taken</th>
 				<th>Item name</th>
@@ -87,6 +91,7 @@
 			<tr class="state-{{ task_item.status }}">
 				<td>{{ task_item.pk_id }}</td>
 				<td>{{ task_item.status }}</td>
+				<td>{{ task_item.start_as_timestamp }}</td>
 				<td style="white-space: nowrap;">{{ task_item.age }}</td>
 				<td style="white-space: nowrap;">{{ task_item.time_taken }}</td>
 				<td>{{ task_item.item_name }}</td>

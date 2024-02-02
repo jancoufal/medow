@@ -18,7 +18,6 @@ app.ctx = None
 class HtmlEntitySymbol(Enum):
 	HOME = "&#x2302;"
 	STATE = "&#x22f1;"  # "&#x225f;"
-	# STATS = "&#x03a3;"  # "&Sigma;"
 	SCRAP = "&#x21ca;"
 
 
@@ -51,7 +50,6 @@ def get_page_data(page_values: dict = None):
 		"navigation": [
 			{"name": HtmlEntitySymbol.HOME.value, "href": url_for("page_index"), },
 			{"name": HtmlEntitySymbol.STATE.value, "href": url_for("page_state", repository=RepositoryType.IN_MEMORY.value), },
-			# {"name": HtmlEntitySymbol.STATS.value, "href": url_for("page_stats"), },
 			{"name": HtmlEntitySymbol.SCRAP.value, "href": url_for("page_scrap"), },
 			{"name": "E", "href": url_for("page_throw_error"), },
 		],
