@@ -1,6 +1,7 @@
 import socket
 import sys
 import traceback
+import psutil
 from enum import Enum
 
 from flask import Flask, url_for, render_template, request
@@ -55,7 +56,6 @@ def get_page_data(page_values: dict = None):
 		],
 		"web_state": {
 			"uptime": app_context.uptime,
-			"python_version": sys.version,
 		},
 	}
 
@@ -99,11 +99,17 @@ def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = 
 
 		page_data["state"] = {
 			"uptime": app_context.uptime,
+			"psutil": {
+				"cpu_load": psutil.cpu_percent(0.1),
+				"memory_percent": psutil.virtual_memory().percent,
+				"disk_percent": psutil.disk_usage("/").percent,
+			},
 			"active_repository": repository,
 			"active_task_id": task_id,
 			"repositories": {
 				repository_type.value: url_for("page_state", repository=repository_type.value) for repository_type in RepositoryType
 			},
+			"python_version": sys.version,
 		}
 
 		if task_id is not None:

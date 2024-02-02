@@ -13,8 +13,13 @@
 	{% endfor %}
 </ul>
 <dl class="app-state">
-	<dt>Uptime:</dt>
-	<dd>{{ page_data.state.uptime }}</dd>
+	<dt>Stats:</dt>
+	<dd><table class="scrap-result">
+		<tr><th>Uptime:</th><td>{{ page_data.state.uptime }}</td></tr>
+		<tr><th>CPU utilization:</th><td>{{ page_data.state.psutil.cpu_load }}%</td></tr>
+		<tr><th>RAM utilization:</th><td>{{ page_data.state.psutil.memory_percent }}%</td></tr>
+		<tr><th>Storage utilization:</th><td>{{ page_data.state.psutil.disk_percent }}%</td></tr>
+	</table></dd>
 
 {%- if page_data.state.page_view_mode == 'task_overview' -%}
 	<dt>Last tasks:</dt>
