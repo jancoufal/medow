@@ -117,7 +117,7 @@ class RepositorySqlite3(Repository):
 		self._sqlite_api.do_with_connection(_updater)
 
 	def load_entity_task(self, pk_id: int) -> MTaskE | None:
-		self._logger.debug(f"Reading entity 'MScrapTaskE' for pk_id '{pk_id}'.")
+		self._logger.debug(f"Reading entity 'MTaskE' for pk_id '{pk_id}'.")
 		return self._sqlite_api.read(
 			f"select * from {_Table.TASK.value} where pk_id=:pk_id",
 			{"pk_id": pk_id},
@@ -125,7 +125,7 @@ class RepositorySqlite3(Repository):
 		).pop()
 
 	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
-		self._logger.debug(f"Reading recent entities 'MScrapTaskE' limited to {item_limit} items.")
+		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items.")
 		return self._sqlite_api.read(
 			sql_stmt=f"select * from {_Table.TASK.value} order by pk_id desc limit :limit",
 			binds={"limit": item_limit},
@@ -141,7 +141,7 @@ class RepositorySqlite3(Repository):
 		)
 
 	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
-		self._logger.debug(f"Reading recent entities 'MScrapTaskE' for task '{task_def}' limited to {item_limit} items.")
+		self._logger.debug(f"Reading recent entities 'MTaskItemE' for task '{task_def}' limited to {item_limit} items.")
 		return self._sqlite_api.read(
 			sql_stmt=f"""
 				select ti.*
@@ -156,7 +156,7 @@ class RepositorySqlite3(Repository):
 		)
 
 	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
-		self._logger.debug(f"Reading non synchronized entities 'MScrapTaskE' for task '{task_def}'.")
+		self._logger.debug(f"Reading non synchronized entities 'MTaskItemE' for task '{task_def}'.")
 		return self._sqlite_api.read(
 			sql_stmt=f"""
 				select ti.*
@@ -200,28 +200,35 @@ class RepositoryInMemory(Repository):
 			case _: raise ValueError(f"Unknown entity {entity}.")
 
 	def save_entity(self, entity: MTaskE | MTaskItemE, get_last_id: bool) -> int | None:
+		self._logger.debug(f"Saving entity {entity.__class__.__name__}.")
 		t = self.get_table_for_entity(entity)
 		entity.pk_id = t.get_next_id_if_none(entity.pk_id)
 		t.data[entity.pk_id] = entity
 		return entity.pk_id
 
 	def update_entity(self, entity: MTaskE | MTaskItemE) -> None:
+		self._logger.debug(f"Updating entity {entity.__class__.__name__}.")
 		t = self.get_table_for_entity(entity)
 		t.data[entity.pk_id] = entity
 
 	def load_entity_task(self, pk_id: int) -> MTaskE | None:
+		self._logger.debug(f"Reading entity 'MTaskE' for pk_id '{pk_id}'.")
 		return self._tasks.data[int(pk_id)]
 
 	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
+		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items.")
 		return list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:int(item_limit)]
 
 	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
+		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
 		return list(filter(lambda item: item.task_id == task_entity.pk_id, self._task_items.data.values()))
 
 	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
+		self._logger.debug(f"Reading recent entities 'MTaskItemE' for task '{task_def}' limited to {item_limit} items.")
 		raise NotImplementedError("In-memory repository does not offer list of recent task items.")
 
 	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
+		self._logger.debug(f"Reading non synchronized entities 'MTaskItemE' for task '{task_def}'.")
 		raise NotImplementedError("In-memory repository does not offer list of non-synced items.")
 
 
