@@ -13,9 +13,6 @@ CONFIG_FILE = "config.yaml"
 app = Flask(__name__)
 
 
-GLOBAL_APP_CONTEXT: AppContext
-
-
 class HtmlEntitySymbol(Enum):
 	HOME = "&#x2302;"
 	STATE = "&#x22f1;"  # "&#x225f;"
@@ -29,8 +26,8 @@ class ViewSources(Enum):
 
 
 def get_app_context() -> AppContext:
-	global GLOBAL_APP_CONTEXT
-	return GLOBAL_APP_CONTEXT
+	global app
+	return app.ctx
 
 
 def get_page_data(page_values: dict = None):
@@ -233,17 +230,15 @@ def init_app_context(flask_app: Flask) -> AppContext:
 	if ctx.config.server.port is None:
 		raise ValueError(f"Server port not specified in '{CONFIG_FILE}'")
 
-	global GLOBAL_APP_CONTEXT
-	GLOBAL_APP_CONTEXT = ctx
-
-	return GLOBAL_APP_CONTEXT
+	flask_app.ctx = ctx
+	return ctx
 
 
 if __name__ == "__main__":
-	GLOBAL_APP_CONTEXT = init_app_context(app)
+	ctx = init_app_context(app)
 
 	app.run(
-		host=GLOBAL_APP_CONTEXT.config.server.host,
-		port=GLOBAL_APP_CONTEXT.config.server.port,
-		debug=GLOBAL_APP_CONTEXT.config.server.debug
+		host=ctx.config.server.host,
+		port=ctx.config.server.port,
+		debug=ctx.config.server.debug
 	)
