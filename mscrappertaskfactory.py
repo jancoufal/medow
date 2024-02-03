@@ -155,6 +155,7 @@ class TaskRoumen(object):
 					relative_file_path = relative_path / image_name_to_download
 
 					remote_file_url = f"{self._config_scrapper.img_base}/{image_name_to_download}"
+					self._logger.debug(f"Downloading {remote_file_url!s} to {destination_path!s}...")
 					r = requests.get(
 						remote_file_url,
 						stream=True,
@@ -162,14 +163,17 @@ class TaskRoumen(object):
 						timeout=self._config_scrapper.request_timeout_seconds
 					)
 
+					self._logger.debug(f"Request finished with status '{r.status_code}'.")
 					if r.status_code != HTTPStatus.OK:
 						raise RuntimeError(f"Unexpected status {r.status_code}: {r.text}.")
 
+					self._logger.debug(f"Writing response content to file '{(destination_path / image_name_to_download)!s}'.")
 					with open(str(destination_path / image_name_to_download), "wb") as fh:
 						for chunk in r.iter_content(chunk_size=self._config_scrapper.request_chunk_size):
 							if chunk:
 								fh.write(chunk)
 
+					self._logger.debug(f"File '{image_name_to_download}' scrapped successfully.")
 					self._event.on_item_finish(str(relative_file_path))
 
 				except Exception as ex:
@@ -180,28 +184,40 @@ class TaskRoumen(object):
 			self._event.on_error(ex)
 
 	def _get_image_names_to_download(self) -> List[str]:
+		self._logger.debug(f"Reading recent task items for '{self._task_def}' task.")
 		recent_items = self._repository.read_recent_task_items(self._task_def, TaskRoumen.RECENT_ITEMS_LIMIT)
+		self._logger.debug(f"{len(recent_items)} recent items read.")
 		recent_items_names = set(i.item_name for i in recent_items)
+		self._logger.debug(f"{len(recent_items_names)} recent item names available.")
 		remote_images = self._scrap_image_names_from_website()
 		remote_images = [_ for _ in remote_images if _ not in recent_items_names]
+		self._logger.debug(f"{len(remote_images)} remote images not scrapped yet.")
 
-		# remove possible duplicates with preserved order and then reverse, because the "top" image should be scrapped last
+		self._logger.debug(f"Removing duplicate image names...")
 		seen = set()
 		seen_add = seen.add
-		return list(reversed([_ for _ in remote_images if not (_ in seen or seen_add(_))]))
+		image_names_to_download = list(reversed([_ for _ in remote_images if not (_ in seen or seen_add(_))]))
+		self._logger.debug(f"{len(image_names_to_download)} remote images to download.")
+		return image_names_to_download
 
 	""" mine all the image paths from website """
 	def _scrap_image_names_from_website(self) -> List[str]:
+		self._logger.debug(f"Requesting page '{self._config_scrapper.base_url}' for images.")
 		get_result = requests.get(self._config_scrapper.base_url, params=self._config_scrapper.url_params)
+		self._logger.debug(f"'{self._config_scrapper.base_url}' result code: '{get_result.status_code}'.")
 		soup = bs4.BeautifulSoup(get_result.content.decode(get_result.apparent_encoding), features="html.parser")
 
 		# extract all "a" tags having "roumingShow.php" present in the "href"
+		self._logger.debug(f"Extracting links from the page.")
 		all_urls = map(lambda a: urllib.parse.urlparse(a.get("href")), soup.find_all("a"))
 		all_show = [url for url in all_urls if isinstance(url.path, str) and self._config_scrapper.href_needle in url.path]
+		self._logger.debug(f"{len(all_show)} links extracted.")
 
 		# extract all "file" values from the query string
+		self._logger.debug(f"Extracing image names...")
 		all_qstr = [urllib.parse.parse_qs(url.query) for url in all_show]
 		all_imgs = [qs.get("file").pop() for qs in all_qstr if "file" in qs]
+		self._logger.debug(f"{len(all_imgs)} image names extracted.")
 
 		return all_imgs
 
