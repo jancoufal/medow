@@ -10,7 +10,7 @@ class SqliteApi(object):
 
 	def do_with_connection(self, connection_cb: callable):
 		self._logger.debug(f"Opening connection for '{self.sqlite_datafile}'.")
-		db_conn = sqlite3.connect(self.sqlite_datafile)
+		db_conn = sqlite3.connect(self.sqlite_datafile, check_same_thread=False)
 		try:
 			with db_conn:
 				return connection_cb(db_conn)
