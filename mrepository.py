@@ -118,46 +118,60 @@ class RepositorySqlite3(Repository):
 
 	def load_entity_task(self, pk_id: int) -> MTaskE | None:
 		self._logger.debug(f"Reading entity 'MTaskE' for pk_id '{pk_id}'.")
-		return self._sqlite_api.read(
+		item = self._sqlite_api.read(
 			f"select * from {_Table.TASK.value} where pk_id=:pk_id",
 			{"pk_id": pk_id},
 			lambda rs: MTaskE(*rs)
 		).pop()
+		self._logger.debug(f"Returning '{item.pk_id}' task.")
+		return item
 
 	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
 		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items.")
-		return self._sqlite_api.read(
+		items = self._sqlite_api.read(
 			sql_stmt=f"select * from {_Table.TASK.value} order by pk_id desc limit :limit",
 			binds={"limit": item_limit},
 			row_mapper=lambda rs: MTaskE(*rs)
 		)
+		self._logger.debug(f"Returning {len(items)} recent tasks.")
+		return items
 
 	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
-		return self._sqlite_api.read(
+		items = self._sqlite_api.read(
 			sql_stmt=f"select * from {_Table.TASK_ITEM.value} where task_id=:task_id order by pk_id asc",
 			binds={"task_id": task_entity.pk_id},
 			row_mapper=lambda rs: MTaskItemE(*rs)
 		)
+		self._logger.debug(f"Returning {len(items)} task items.")
+		return items
 
 	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading recent entities 'MTaskItemE' for task '{task_def}' limited to {item_limit} items.")
-		return self._sqlite_api.read(
+		items = self._sqlite_api.read(
 			sql_stmt=f"""
 				select ti.*
 				from {_Table.TASK.value} t
 				inner join {_Table.TASK_ITEM.value} ti
-					on ti.task_id=t.pk_id
+					on ti.task_id=t.pk_id and ti.status=:item_status
 				where t.task_class=:task_class and t.task_type=:task_type
 				order by ti.pk_id desc
 				limit :limit""",
-			binds={"task_class": task_def.cls.value, "task_type": task_def.typ.value, "limit": item_limit},
+			binds={
+				"task_class": task_def.cls.value,
+				"task_type": task_def.typ.value,
+				"item_status": TaskStatusEnum.COMPLETED.value,
+				"limit": item_limit
+			},
 			row_mapper=lambda rs: MTaskItemE(*rs)
 		)
+		self._logger.debug(f"Returning {len(items)} recent task items.")
+
+		return items
 
 	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading non synchronized entities 'MTaskItemE' for task '{task_def}'.")
-		return self._sqlite_api.read(
+		items = self._sqlite_api.read(
 			sql_stmt=f"""
 				select ti.*
 				from {_Table.TASK.value} t
@@ -173,6 +187,8 @@ class RepositorySqlite3(Repository):
 			},
 			row_mapper=lambda rs: MTaskItemE(*rs)
 		)
+		self._logger.debug(f"Returning '{len(items)}' not synced task items.")
+		return items
 
 
 class _RepositoryInMemoryTable(object):
@@ -215,15 +231,21 @@ class RepositoryInMemory(Repository):
 
 	def load_entity_task(self, pk_id: int) -> MTaskE | None:
 		self._logger.debug(f"Reading entity 'MTaskE' for pk_id '{pk_id}'.")
-		return self._tasks.data[int(pk_id)]
+		item = self._tasks.data[int(pk_id)]
+		self._logger.debug(f"Returning '{item.pk_id}' task.")
+		return item
 
 	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
 		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items (total items {len(self._tasks.data)}).")
-		return list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:int(item_limit)]
+		items = list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:int(item_limit)]
+		self._logger.debug(f"Returning {len(items)} recent tasks.")
+		return items
 
 	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
-		return list(filter(lambda item: item.task_id == task_entity.pk_id, self._task_items.data.values()))
+		items = list(filter(lambda item: item.task_id == task_entity.pk_id, self._task_items.data.values()))
+		self._logger.debug(f"Returning {len(items)} task items.")
+		return items
 
 	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading recent entities 'MTaskItemE' for task '{task_def}' limited to {item_limit} items.")
