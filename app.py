@@ -1,3 +1,4 @@
+import os
 import socket
 import sys
 import traceback
@@ -103,6 +104,9 @@ def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = 
 				"cpu_load": psutil.cpu_percent(0.1),
 				"memory_percent": psutil.virtual_memory().percent,
 				"disk_percent": psutil.disk_usage("/").percent,
+			},
+			"process": {
+				"pid": os.getpid(),
 			},
 			"active_repository": repository,
 			"active_task_id": task_id,
