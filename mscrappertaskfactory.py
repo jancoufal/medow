@@ -296,6 +296,9 @@ class TaskYoutubeDownload(object):
 				f" speed: {info.get('_speed_str', 'n/a').strip()}"
 			)
 
+			if info.get("status", "-").lower() == "finished":
+				self._destination_path = None
+
 			if self._destination_path is None and info.get("filename", None) is not None:
 				self._destination_path = info.get("filename").removeprefix(self._storage_directory)
 
