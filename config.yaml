@@ -6,10 +6,10 @@ logger:
   level: 10 # see https://docs.python.org/3/library/logging.html#logging-levels (10=debug, 20=info, 30=warn, 40=err, 50=crit)
 server:
   host: 0.0.0.0
-  port: 5000
+  port: 5123
   debug: true
 persistence:
-  sqlite_datafile: "sql/medow.sqlite3"
+  sqlite_datafile: "medow.sqlite3"
 repository_limits:
   select_min: 1
   select_max: 1000
