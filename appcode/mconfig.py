@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Dict
 
 from dataclass_wizard import YAMLWizard
@@ -53,8 +54,8 @@ class ConfigScrapperRoumen:
 
 @dataclass
 class ConfigScrappers:
-	storage_path: str
-	storage_path_for_static: str
+	storage_path: Path
+	storage_path_for_static: Path
 	roumen_kecy: ConfigScrapperRoumen
 	roumen_maso: ConfigScrapperRoumen
 

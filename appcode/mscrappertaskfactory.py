@@ -127,14 +127,14 @@ class TaskRoumen(object):
 			logger: Logger,
 			task_def: TaskClassAndType,
 			config_scrapper: ConfigScrapperRoumen,
-			storage_dir: str,
+			storage_base_path: Path,
 			repository: Repository
 	):
 		self._event = task_event_handler
 		self._logger = logger
 		self._task_def = task_def
 		self._config_scrapper = config_scrapper
-		self._storage_dir = storage_dir
+		self._storage_base_path = storage_base_path
 		self._repository = repository
 		self._event.on_new()
 
@@ -149,7 +149,7 @@ class TaskRoumen(object):
 
 					# path will be like "{scrap_path}/{source}/{yyyy}/{week}/{image.jpg}"
 					relative_path = Path(self._task_def.typ.value).joinpath(f"{ts:%Y}").joinpath(f"{ts:%V}")
-					destination_path = self._storage_dir / relative_path
+					destination_path = self._storage_base_path / relative_path
 
 					destination_path.mkdir(parents=True, exist_ok=True)
 					relative_file_path = relative_path / image_name_to_download
@@ -319,7 +319,7 @@ class SyncToFtp(object):
 			logger: Logger,
 			task_def: TaskClassAndType,
 			repository: Repository,
-			storage_dir: str,
+			storage_dir: Path,
 			ftp_config: ConfigFtp
 	):
 		self._event = task_event_handler
@@ -327,7 +327,7 @@ class SyncToFtp(object):
 		self._logger_ftp = logger.getChild("ftp")
 		self._task_def = task_def
 		self._repository = repository
-		self._storage_dir = Path(storage_dir)
+		self._storage_dir = storage_dir
 		self._ftp_config = ftp_config
 		self._event.on_new()
 
