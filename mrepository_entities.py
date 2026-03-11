@@ -8,7 +8,6 @@ from mformatters import Formatter, TimestampFormat
 class TaskClass(Enum):
 	DUMMY = "dummy"
 	SCRAP = "scrap"
-	SYNC = "sync"
 
 
 class TaskType(Enum):
@@ -32,12 +31,6 @@ class TaskStatusEnum(Enum):
 	RUNNING = "running"
 	COMPLETED = "completed"
 	ERROR = "error"
-
-
-class TaskSyncStatusEnum(Enum):
-	IGNORE = "ignore"
-	NOT_SYNCED = "not_synced"
-	SYNCED = "synced"
 
 
 @dataclass
@@ -85,7 +78,6 @@ class MTaskE:
 		task_class_mapper = {
 			TaskClass.DUMMY.value: ".",
 			TaskClass.SCRAP.value: "&#x21ca;",  # two arrows down
-			TaskClass.SYNC.value: "&#x21c8;",  # two arrows up
 		}
 		task_type_mapper = {
 			TaskType.DUMMY.value: ".",

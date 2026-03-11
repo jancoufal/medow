@@ -162,9 +162,6 @@ def page_scrap():
 					urls = tuple(url.strip() for url in request.form.get("url-list", "").split())
 					tasks.append(app_context.task_factory.create_task_youtube_dl(urls))
 
-			case ("POST", "ftp"):
-				tasks.extend([app_context.task_factory.create_task_ftp_sync(task_type) for task_type in TaskType if task_type is not TaskType.DUMMY])
-
 		for task in tasks:
 			app_context.task_executor.submit(task)
 

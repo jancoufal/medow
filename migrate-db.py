@@ -167,7 +167,7 @@ def migrate():
 					destination_path=local_path_migrate(r.local_path),
 					exception_type=None,
 					exception_value=None,
-					sync_status=TaskSyncStatusEnum.NOT_SYNCED.value,
+					sync_status="ignore",
 				))
 
 		for r in src_data.fails:
@@ -183,7 +183,7 @@ def migrate():
 					destination_path=None,
 					exception_type=error_map[r.exc_type],
 					exception_value=r.exc_value,
-					sync_status=TaskSyncStatusEnum.IGNORE.value,
+					sync_status="ignore",
 				))
 		return task_items
 

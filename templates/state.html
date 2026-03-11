@@ -80,35 +80,31 @@
 	<dt>Items</dt>
 	<dd>
 		<table class="scrap-results">
-			<tr>
-				<th>#id</th>
-				<th>State</th>
-				<th>Date</th>
-				<th>Age</th>
-				<th>Time taken</th>
-				<th>Item name</th>
-				<th>Destination path</th>
-				<th>Error type</th>
-				<th>Error message</th>
-				<th>Sync status</th>
-				<th>Sync ref id</th>
-			</tr>
-			{%- for task_item in page_data.state.task_items|reverse -%}
-			<tr class="state-{{ task_item.status }}">
-				<td>{{ task_item.pk_id }}</td>
-				<td>{{ task_item.status }}</td>
-				<td style="white-space: nowrap;">{{ task_item.start_date }}</td>
-				<td style="white-space: nowrap;">{{ task_item.age }}</td>
-				<td style="white-space: nowrap;">{{ task_item.time_taken }}</td>
-				<td>{{ task_item.item_name }}</td>
-				<td>{{ task_item.destination_path }}</td>
-				<td>{{ task_item.exception_type }}</td>
-				<td>{{ task_item.exception_value }}</td>
-				<td>{{ task_item.sync_status }}</td>
-				<td>{{ task_item.ref_id }}</td>
-			</tr>
-			{% endfor %}
-		</table>
+				<tr>
+					<th>#id</th>
+					<th>State</th>
+					<th>Date</th>
+					<th>Age</th>
+					<th>Time taken</th>
+					<th>Item name</th>
+					<th>Destination path</th>
+					<th>Error type</th>
+					<th>Error message</th>
+				</tr>
+				{%- for task_item in page_data.state.task_items|reverse -%}
+				<tr class="state-{{ task_item.status }}">
+					<td>{{ task_item.pk_id }}</td>
+					<td>{{ task_item.status }}</td>
+					<td style="white-space: nowrap;">{{ task_item.start_date }}</td>
+					<td style="white-space: nowrap;">{{ task_item.age }}</td>
+					<td style="white-space: nowrap;">{{ task_item.time_taken }}</td>
+					<td>{{ task_item.item_name }}</td>
+					<td>{{ task_item.destination_path }}</td>
+					<td>{{ task_item.exception_type }}</td>
+					<td>{{ task_item.exception_value }}</td>
+				</tr>
+				{% endfor %}
+			</table>
 	</dd>
 {%- endif -%}
 </dl>

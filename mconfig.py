@@ -59,15 +59,6 @@ class ConfigScrappers:
 
 
 @dataclass
-class ConfigFtp:
-	host: str
-	port: int
-	user: str
-	password: str
-	blocksize: int
-
-
-@dataclass
 class Config(YAMLWizard):
 	site_title: str
 	app_debug: bool
@@ -78,4 +69,3 @@ class Config(YAMLWizard):
 	listing_limits: ConfigListingLimits
 	worker_thread: ConfigWorkerThread
 	scrappers: ConfigScrappers
-	ftp: ConfigFtp

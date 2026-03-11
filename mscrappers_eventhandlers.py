@@ -3,7 +3,7 @@ from logging import Logger
 from mformatters import Formatter, TimestampFormat
 from mrepository import Repository
 from mrepository_entities import MTaskE, TaskStatusEnum, MTaskItemE
-from mrepository_entities import TaskClassAndType, TaskSyncStatusEnum
+from mrepository_entities import TaskClassAndType
 from mscrappers_api import TaskEvents
 
 
@@ -37,12 +37,11 @@ class TaskEventLogger(TaskEvents):
 
 
 class TaskEventRepositoryWriter(TaskEvents):
-	def __init__(self, repository: Repository, task_def: TaskClassAndType, success_task_sync_status: TaskSyncStatusEnum):
+	def __init__(self, repository: Repository, task_def: TaskClassAndType):
 		self._repository = repository
 		self._task_def = task_def
 		self._entity_task = None
 		self._entity_task_item = None
-		self._success_task_sync_status = success_task_sync_status
 
 	@staticmethod
 	def _get_current_timestamp() -> str:
@@ -104,7 +103,7 @@ class TaskEventRepositoryWriter(TaskEvents):
 			destination_path=None,
 			exception_type=None,
 			exception_value=None,
-			sync_status=TaskSyncStatusEnum.IGNORE.value,
+			sync_status="ignore",
 		)
 		pk_id = self._repository.save_entity(self._entity_task_item, True)
 		self._entity_task_item.pk_id = pk_id
@@ -117,7 +116,7 @@ class TaskEventRepositoryWriter(TaskEvents):
 		self._entity_task_item.status = TaskStatusEnum.COMPLETED.value
 		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.destination_path = destination_path
-		self._entity_task_item.sync_status = self._success_task_sync_status.value
+		self._entity_task_item.sync_status = "ignore"
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_success += 1
 
@@ -126,6 +125,6 @@ class TaskEventRepositoryWriter(TaskEvents):
 		self._entity_task_item.ts_end = TaskEventRepositoryWriter._get_current_timestamp()
 		self._entity_task_item.exception_type = ex.__class__.__name__
 		self._entity_task_item.exception_value = TaskEventRepositoryWriter._sanitize_exception_for_write(ex)
-		self._entity_task_item.sync_status = TaskSyncStatusEnum.IGNORE.value
+		self._entity_task_item.sync_status = "ignore"
 		self._repository.update_entity(self._entity_task_item)
 		self._entity_task.item_count_fail += 1
