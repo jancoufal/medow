@@ -196,7 +196,7 @@ def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = 
 			RepositoryType.PERSISTENT.value: AppExtensionKeys.REPOSITORY_PERSISTENT,
 		}
 
-		repo = app.extensions[repo_type_to_repo_ext_mapping.get(repository, RepositoryType.IN_MEMORY)]
+		repo = app.extensions[repo_type_to_repo_ext_mapping.get(repository, RepositoryType.IN_MEMORY.value)]
 
 		page_data["state"] = {
 			"uptime": Formatter.ts_diff_to_str(app.config[AppConfigKeys.START_TIME], datetime.now(), False),
