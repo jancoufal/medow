@@ -14,7 +14,7 @@ from apscheduler.schedulers.background import BackgroundScheduler
 
 from appcode.mconfig import Config
 from appcode.mformatters import Formatter
-from appcode.mrepository import RepositoryFactory, RepositoryType
+from appcode.mrepository import RepositorySqlite3
 from appcode.mrepository_entities import TaskClassAndType, TaskClass, TaskType
 from appcode.mscrappertaskfactory import TaskFactory
 from appcode.msqlite_api import SqliteApi
@@ -30,8 +30,7 @@ class AppConfigKeys(Enum):
 
 
 class AppExtensionKeys(Enum):
-	REPOSITORY_IN_MEMORY = "REPOSITORY_IN_MEMORY"
-	REPOSITORY_PERSISTENT = "REPOSITORY_PERSISTENT"
+	REPOSITORY = "REPOSITORY"
 	TASK_FACTORY = "TASK_FACTORY"
 	TASK_EXECUTOR = "TASK_EXECUTOR"
 
@@ -60,22 +59,17 @@ app.config.update({
 
 ### APP EXTENSIONS
 
-_repository_factory = RepositoryFactory(
+_repository = RepositorySqlite3(
 	_logger.getChild("repository"),
 	SqliteApi(_logger.getChild("sqlite3"), _app_config.persistence.sqlite_datafile)
 )
 
-_repository_persistent = _repository_factory.create(RepositoryType.PERSISTENT)
-_repository_in_memory = _repository_factory.create(RepositoryType.IN_MEMORY)
-
 app.extensions.update({
-	AppExtensionKeys.REPOSITORY_IN_MEMORY: _repository_in_memory,
-	AppExtensionKeys.REPOSITORY_PERSISTENT: _repository_persistent,
+	AppExtensionKeys.REPOSITORY: _repository,
 	AppExtensionKeys.TASK_FACTORY: TaskFactory(
 		_logger.getChild("task"),
 		_app_config,
-		_repository_persistent,
-		_repository_in_memory),
+		_repository),
 	AppExtensionKeys.TASK_EXECUTOR: ThreadPoolExecutor(
 		max_workers=_app_config.worker_thread.max_workers
 	),
@@ -142,7 +136,7 @@ def get_page_data(page_values: dict = None):
 		},
 		"navigation": [
 			{"name": HtmlEntitySymbol.HOME.value, "href": url_for("page_index"), },
-			{"name": HtmlEntitySymbol.STATE.value, "href": url_for("page_state", repository=RepositoryType.IN_MEMORY.value), },
+			{"name": HtmlEntitySymbol.STATE.value, "href": url_for("page_state"), },
 			{"name": HtmlEntitySymbol.SCRAP.value, "href": url_for("page_scrap"), },
 			{"name": "E", "href": url_for("page_throw_error"), },
 		],
@@ -184,19 +178,12 @@ def page_griffin():
 
 
 @app.route("/state/")
-@app.route("/state/<repository>/")
-@app.route("/state/<repository>/<task_id>/")
-def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = None):
+@app.route("/state/<int:task_id>/")
+def page_state(task_id: int = None):
 	page_data = get_page_data()
 
 	try:
-
-		repo_type_to_repo_ext_mapping = {
-			RepositoryType.IN_MEMORY.value: AppExtensionKeys.REPOSITORY_IN_MEMORY,
-			RepositoryType.PERSISTENT.value: AppExtensionKeys.REPOSITORY_PERSISTENT,
-		}
-
-		repo = app.extensions[repo_type_to_repo_ext_mapping.get(repository, RepositoryType.IN_MEMORY.value)]
+		repo = app.extensions[AppExtensionKeys.REPOSITORY]
 
 		page_data["state"] = {
 			"uptime": Formatter.ts_diff_to_str(app.config[AppConfigKeys.START_TIME], datetime.now(), False),
@@ -208,11 +195,7 @@ def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = 
 			"process": {
 				"pid": os.getpid(),
 			},
-			"active_repository": repository,
 			"active_task_id": task_id,
-			"repositories": {
-				repository_type.value: url_for("page_state", repository=repository_type.value) for repository_type in RepositoryType
-			},
 			"python_version": sys.version,
 		}
 
@@ -227,7 +210,7 @@ def page_state(repository: str = RepositoryType.IN_MEMORY.value, task_id: int = 
 			page_data["state"].update({
 				"page_view_mode": "task_overview",
 				"tasks": repo.read_recent_tasks_all(app.config[AppConfigKeys.APP].listing_limits.scraps),
-				"task_detail_link_base": url_for("page_state", repository=repository),
+				"task_detail_link_base": url_for("page_state"),
 			})
 
 		return render_template("state.html", page_data=page_data)
@@ -285,9 +268,9 @@ def page_view(view_source: str):
 			case _: raise ValueError(f"Invalid view type '{view_source}'.")
 
 		config = app.config[AppConfigKeys.APP]
-		repository_persistent = app.extensions[AppExtensionKeys.REPOSITORY_PERSISTENT]
+		repository = app.extensions[AppExtensionKeys.REPOSITORY]
 
-		items = repository_persistent.read_recent_task_items(
+		items = repository.read_recent_task_items(
 			task_def,
 			config.listing_limits.images
 		)

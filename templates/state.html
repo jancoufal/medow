@@ -3,15 +3,6 @@
 
 {% block content %}
 <h2>App state</h2>
-<ul class="">
-	{%- for repository_type in page_data.state.repositories -%}
-		{%- if page_data.state.active_repository == repository_type -%}
-	<li><a class="selected" href="{{ page_data.state.repositories[repository_type] }}">{{ repository_type }}</a></li>
-		{%- else -%}
-	<li><a href="{{ page_data.state.repositories[repository_type] }}">{{ repository_type }}</a></li>
-		{%- endif -%}
-	{% endfor %}
-</ul>
 <dl class="app-state">
 	<dt>Stats:</dt>
 	<dd><table class="scrap-result">

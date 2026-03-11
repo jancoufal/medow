@@ -19,17 +19,15 @@ from .mscrappers_eventhandlers import TaskEventLogger, TaskEventRepositoryWriter
 
 
 class TaskFactory(object):
-	def __init__(self, logger: Logger, config: Config, repository_persistent: Repository, repository_in_memory: Repository):
+	def __init__(self, logger: Logger, config: Config, repository: Repository):
 		self._logger = logger
 		self._config = config
-		self._repository_persistent = repository_persistent
-		self._repository_in_memory = repository_in_memory
+		self._repository = repository
 
 	def _create_event_handler(self, task_def: TaskClassAndType):
 		return TaskEventDispatcher((
 			TaskEventLogger(self._logger.getChild("event"), task_def),
-			TaskEventRepositoryWriter(self._repository_in_memory, task_def),
-			TaskEventRepositoryWriter(self._repository_persistent, task_def),
+			TaskEventRepositoryWriter(self._repository, task_def),
 		))
 
 	def create_task_dummy(self, description: str):
@@ -41,22 +39,22 @@ class TaskFactory(object):
 		return TaskRoumen(
 			self._create_event_handler(task_def),
 			self._logger.getChild(str(task_def)),
-			task_def,
-			self._config.scrappers.roumen_kecy,
-			self._config.scrappers.storage_path,
-			self._repository_persistent
-		)
+				task_def,
+				self._config.scrappers.roumen_kecy,
+				self._config.scrappers.storage_path,
+				self._repository
+			)
 
 	def create_task_roumen_maso(self):
 		task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
 		return TaskRoumen(
 			self._create_event_handler(task_def),
 			self._logger.getChild(str(task_def)),
-			task_def,
-			self._config.scrappers.roumen_maso,
-			self._config.scrappers.storage_path,
-			self._repository_persistent
-		)
+				task_def,
+				self._config.scrappers.roumen_maso,
+				self._config.scrappers.storage_path,
+				self._repository
+			)
 
 	def create_task_youtube_dl(self, urls: Tuple[str, ...]):
 		raise NotImplementedError("YouTube dowload not currently available")

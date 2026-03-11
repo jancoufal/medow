@@ -1,6 +1,5 @@
 """
 persistent repository implementation.
-RepositoryFactory is in the end of the file.
 """
 
 import sqlite3
@@ -11,12 +10,6 @@ from typing import List
 
 from .mrepository_entities import *
 from .msqlite_api import SqliteApi
-
-
-class RepositoryType(Enum):
-	IN_MEMORY = "in-memory"
-	PERSISTENT = "persistent"
-
 
 class _Table(Enum):
 	TASK = "task"
@@ -164,77 +157,3 @@ class RepositorySqlite3(Repository):
 		self._logger.debug(f"Returning {len(items)} recent task items.")
 
 		return items
-
-class _RepositoryInMemoryTable(object):
-	def __init__(self):
-		self.data = {}
-		self.pk_id_sequence = 0
-
-	def get_next_id_if_none(self, existing_id: int):
-		if existing_id is not None:
-			return existing_id
-		self.pk_id_sequence += 1
-		return self.pk_id_sequence
-
-
-class RepositoryInMemory(Repository):
-	def __init__(self, logger: Logger):
-		self._logger = logger
-		self._tasks = _RepositoryInMemoryTable()
-		self._task_items = _RepositoryInMemoryTable()
-
-	def get_table_for_entity(self, entity: MTaskE | MTaskItemE) -> _RepositoryInMemoryTable:
-		match entity:
-			case MTaskE(): return self._tasks
-			case MTaskItemE(): return self._task_items
-			case _: raise ValueError(f"Unknown entity {entity}.")
-
-	def save_entity(self, entity: MTaskE | MTaskItemE, get_last_id: bool) -> int | None:
-		self._logger.debug(f"Saving entity {entity.__class__.__name__}.")
-		t = self.get_table_for_entity(entity)
-		entity.pk_id = t.get_next_id_if_none(entity.pk_id)
-		t.data[entity.pk_id] = entity
-		self._logger.debug(f"Entity {entity.__class__.__name__} count: {len(t.data)}.")
-		return entity.pk_id
-
-	def update_entity(self, entity: MTaskE | MTaskItemE) -> None:
-		self._logger.debug(f"Updating entity {entity.__class__.__name__}.")
-		t = self.get_table_for_entity(entity)
-		t.data[entity.pk_id] = entity
-		self._logger.debug(f"Entity {entity.__class__.__name__} count: {len(t.data)}.")
-
-	def load_entity_task(self, pk_id: int) -> MTaskE | None:
-		self._logger.debug(f"Reading entity 'MTaskE' for pk_id '{pk_id}'.")
-		item = self._tasks.data[int(pk_id)]
-		self._logger.debug(f"Returning '{item.pk_id}' task.")
-		return item
-
-	def read_recent_tasks_all(self, item_limit: int) -> List[MTaskE]:
-		self._logger.debug(f"Reading recent entities 'MTaskE' limited to {item_limit} items (total items {len(self._tasks.data)}).")
-		items = list(sorted(self._tasks.data.values(), key=lambda item: item.pk_id, reverse=True))[:int(item_limit)]
-		self._logger.debug(f"Returning {len(items)} recent tasks.")
-		return items
-
-	def read_task_items(self, task_entity: MTaskE) -> List[MTaskItemE]:
-		self._logger.debug(f"Reading entities 'MScrapTaskItemE' for task entity '{task_entity.pk_id}.")
-		items = list(filter(lambda item: item.task_id == task_entity.pk_id, self._task_items.data.values()))
-		self._logger.debug(f"Returning {len(items)} task items.")
-		return items
-
-	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
-		self._logger.debug(f"Reading recent entities 'MTaskItemE' for task '{task_def}' limited to {item_limit} items.")
-		raise NotImplementedError("In-memory repository does not offer list of recent task items.")
-
-class RepositoryFactory(object):
-	def __init__(self, logger: Logger, sqlite_api: SqliteApi):
-		self._logger = logger
-		self._sqlite_api = sqlite_api
-
-	def create(self, repository_type: RepositoryType) -> Repository:
-		match repository_type:
-			case RepositoryType.IN_MEMORY:
-				return RepositoryInMemory(self._logger.getChild(repository_type.value))
-			case RepositoryType.PERSISTENT:
-				return RepositorySqlite3(self._logger.getChild(repository_type.value), self._sqlite_api)
-			case _:
-				raise ValueError(f"Unknown repository type {repository_type}")
