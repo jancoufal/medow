@@ -4,11 +4,11 @@ from http import HTTPStatus
 from logging import Logger
 from pathlib import Path
 from time import sleep
-from typing import Tuple, List
+from typing import Any, Tuple, List
 
-# from youtube_dl.youtube_dl import YoutubeDL
 import bs4
 import requests
+from yt_dlp import YoutubeDL
 
 from .mconfig import Config, ConfigScrapperRoumen
 from .mformatters import Formatter
@@ -39,30 +39,30 @@ class TaskFactory(object):
 		return TaskRoumen(
 			self._create_event_handler(task_def),
 			self._logger.getChild(str(task_def)),
-				task_def,
-				self._config.scrappers.roumen_kecy,
-				self._config.scrappers.storage_path,
-				self._repository
-			)
+			task_def,
+			self._config.scrappers.roumen_kecy,
+			self._config.scrappers.storage_path,
+			self._repository
+		)
 
 	def create_task_roumen_maso(self):
 		task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.ROUMEN_MASO)
 		return TaskRoumen(
 			self._create_event_handler(task_def),
 			self._logger.getChild(str(task_def)),
-				task_def,
-				self._config.scrappers.roumen_maso,
-				self._config.scrappers.storage_path,
-				self._repository
-			)
+			task_def,
+			self._config.scrappers.roumen_maso,
+			self._config.scrappers.storage_path,
+			self._repository
+		)
 
 	def create_task_youtube_dl(self, urls: Tuple[str, ...]):
-		raise NotImplementedError("YouTube dowload not currently available")
-		task_def = TaskClassAndType(TaskClass.SCRAP, TaskType.YOUTUBE_DL)
+		task_def = TaskClassAndType(TaskClass.LEECH, TaskType.YOUTUBE_DL)
 		return TaskYoutubeDownload(
 			self._create_event_handler(task_def),
 			self._logger.getChild(str(task_def)),
-			f"{self._config.scrappers.storage_path}",
+			task_def,
+			self._config.scrappers.storage_path,
 			urls
 		)
 
@@ -220,6 +220,9 @@ class _YoutubeLogger(object):
 	def debug(self, message: str):
 		self._l.debug(message)
 
+	def info(self, message: str):
+		self._l.info(message)
+
 	def warning(self, message: str):
 		self._l.warning(message)
 
@@ -227,41 +230,46 @@ class _YoutubeLogger(object):
 		self._l.error(message)
 
 
-"""
 class TaskYoutubeDownload(object):
-	def __init__(self, task_event_handler: TaskEvents, yt_logger: Logger, storage_directory: str, urls: Tuple[str, ...]):
+	def __init__(
+			self,
+			task_event_handler: TaskEvents,
+			logger: Logger,
+			task_def: TaskClassAndType,
+			storage_base_path: Path,
+			urls: Tuple[str, ...]
+	):
 		self._event = task_event_handler
-		self._yt_logger = yt_logger
-		self._urls = [url.strip() for url in urls if len(url.strip()) > 0]
-		self._storage_directory = storage_directory
-		self._event.on_new()
+		self._logger = logger
+		self._task_def = task_def
+		self._storage_base_path = storage_base_path
+		self._urls = tuple(url.strip() for url in urls if len(url.strip()) > 0)
+		self._relative_directory = None
 		self._destination_path = None
+		self._event.on_new()
 
 	def __call__(self):
 		ts = datetime.now()
 		self._event.on_start()
 
 		try:
-			ydl_opts = {
-				# "format": "bestvideo",
-				"cachedir": False,
-				"call_home": False,
-				"no_color": True,
-				"outtmpl": f"{self._storage_directory}{TaskType.YOUTUBE_DL.value}/{ts:%Y}/{ts:%V}/%(title)s-%(id)s.%(ext)s",
-				"logger": _YoutubeLogger(self._yt_logger),
-				"progress_hooks": [self._progress_hook],
-				"http_headers": {
-					"User-Agent": "Mozilla/5.0",
-				},
-			}
+			self._relative_directory = Path(self._task_def.typ.value).joinpath(f"{ts:%Y}").joinpath(f"{ts:%V}")
+			destination_directory = self._storage_base_path / self._relative_directory
+			destination_directory.mkdir(parents=True, exist_ok=True)
 
 			for url in self._urls:
 				try:
+					self._destination_path = None
 					self._event.on_item_start(url)
 
-					with YoutubeDL(ydl_opts) as ydl:
-						ydl.download([url])
+					with YoutubeDL(self._create_ydl_options(destination_directory)) as ydl:
+						info = ydl.extract_info(url, download=True)
 
+						if self._destination_path is None:
+							self._destination_path = self._extract_relative_destination_path(ydl, info)
+
+					if self._destination_path is None:
+						raise RuntimeError(f"Could not determine destination path for '{url}'.")
 					self._event.on_item_finish(self._destination_path)
 
 				except Exception as ex:
@@ -272,9 +280,21 @@ class TaskYoutubeDownload(object):
 		except Exception as ex:
 			self._event.on_error(ex)
 
-	def _progress_hook(self, info: Dict[str, str], *args, **kwargs):
+	def _create_ydl_options(self, destination_directory: Path) -> dict[str, Any]:
+		return {
+			"cachedir": False,
+			"noplaylist": True,
+			"nopart": True,
+			"restrictfilenames": True,
+			"no_color": True,
+			"logger": _YoutubeLogger(self._logger),
+			"progress_hooks": [self._progress_hook],
+			"format": "best",
+			"outtmpl": str(destination_directory / "%(title)s-%(id)s.%(ext)s"),
+		}
+
+	def _progress_hook(self, info: dict[str, Any], *args, **kwargs):
 		try:
-			# status, downloaded_bytes, fragment_index, fragment_count, filename, tmpfilename, elapsed, total_bytes_estimate, speed, eta, _eta_str, _percent_str, _speed_str, _total_bytes_estimate_str
 			self._event.on_item_progress(
 				f"{info.get('status', 'Downloading').title()}"
 				f" file: '{info.get('filename', 'n/a')}'."
@@ -283,12 +303,40 @@ class TaskYoutubeDownload(object):
 				f" speed: {info.get('_speed_str', 'n/a').strip()}"
 			)
 
-			if info.get("status", "-").lower() == "finished":
-				self._destination_path = None
-
-			if self._destination_path is None and info.get("filename", None) is not None:
-				self._destination_path = info.get("filename").removeprefix(self._storage_directory)
+			filename = info.get("filename", None)
+			if self._destination_path is None and isinstance(filename, str):
+				self._destination_path = self._to_relative_destination_path(Path(filename))
 
 		except Exception as ex:
 			self._event.on_item_progress(f"Exception {ex}.")
-"""
+
+	def _extract_relative_destination_path(self, ydl: YoutubeDL, info: dict[str, Any]) -> str | None:
+		candidate_paths = []
+
+		requested_downloads = info.get("requested_downloads", [])
+		if isinstance(requested_downloads, list):
+			for requested_download in requested_downloads:
+				if isinstance(requested_download, dict):
+					candidate_paths.append(requested_download.get("filepath"))
+
+		candidate_paths.extend([
+			info.get("filepath"),
+			info.get("_filename"),
+		])
+
+		try:
+			candidate_paths.append(ydl.prepare_filename(info))
+		except Exception:
+			pass
+
+		for candidate_path in candidate_paths:
+			if isinstance(candidate_path, str) and len(candidate_path) > 0:
+				return self._to_relative_destination_path(Path(candidate_path))
+
+		return None
+
+	def _to_relative_destination_path(self, destination_path: Path) -> str:
+		try:
+			return str(destination_path.relative_to(self._storage_base_path))
+		except ValueError:
+			return str(self._relative_directory / destination_path.name)

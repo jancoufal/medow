@@ -8,3 +8,4 @@ PyYAML
 dataclass-wizard
 psutil
 APScheduler
+yt-dlp[default]

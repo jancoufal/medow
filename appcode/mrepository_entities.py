@@ -8,6 +8,7 @@ from .mformatters import Formatter, TimestampFormat
 class TaskClass(Enum):
 	DUMMY = "dummy"
 	SCRAP = "scrap"
+	LEECH = "leech"
 
 
 class TaskType(Enum):
@@ -78,6 +79,7 @@ class MTaskE:
 		task_class_mapper = {
 			TaskClass.DUMMY.value: ".",
 			TaskClass.SCRAP.value: "&#x21ca;",  # two arrows down
+			TaskClass.LEECH.value: "L",
 		}
 		task_type_mapper = {
 			TaskType.DUMMY.value: ".",
