@@ -47,19 +47,6 @@
 	</form>
 </div>
 
-<div class="form-container">
-	<div class="input-row">
-		<form method="POST">
-			<fieldset>
-				<label for="ftp-sync">FTP/NAS</label>
-				<button name="form" id="ftp-sync" type="submit" value="ftp">Sync to FTP/NAS</button>
-			</fieldset>
-		</form>
-	</div>
-</div>
-
-
-
 {% if page_data.scrapper_results %}
 <dl class="scrap-results">
 {%- for scrapper_key, scrapper_result in page_data.scrapper_results.items() -%}

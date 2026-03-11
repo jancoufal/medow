@@ -55,10 +55,6 @@ class Repository(ABC):
 	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
 		pass
 
-	@abstractmethod
-	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
-		pass
-
 
 class RepositorySqlite3(Repository):
 	def __init__(self, logger: Logger, sqlite_api: SqliteApi):
@@ -169,28 +165,6 @@ class RepositorySqlite3(Repository):
 
 		return items
 
-	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
-		self._logger.debug(f"Reading non synchronized entities 'MTaskItemE' for task '{task_def}'.")
-		items = self._sqlite_api.read(
-			sql_stmt=f"""
-				select ti.*
-				from {_Table.TASK.value} t
-				inner join {_Table.TASK_ITEM.value} ti
-					on ti.task_id=t.pk_id and ti.sync_status=:sync_status
-				where t.task_class=:task_class
-					and t.task_type=:task_type
-				order by ti.pk_id desc""",
-			binds={
-				"task_class": TaskClass.SCRAP.value,
-				"task_type": task_def.typ.value,
-				"sync_status": TaskSyncStatusEnum.NOT_SYNCED.value,
-			},
-			row_mapper=lambda rs: MTaskItemE(*rs)
-		)
-		self._logger.debug(f"Returning '{len(items)}' not synced task items.")
-		return items
-
-
 class _RepositoryInMemoryTable(object):
 	def __init__(self):
 		self.data = {}
@@ -250,11 +224,6 @@ class RepositoryInMemory(Repository):
 	def read_recent_task_items(self, task_def: TaskClassAndType, item_limit: int) -> List[MTaskItemE]:
 		self._logger.debug(f"Reading recent entities 'MTaskItemE' for task '{task_def}' limited to {item_limit} items.")
 		raise NotImplementedError("In-memory repository does not offer list of recent task items.")
-
-	def read_task_items_not_synced(self, task_def: TaskClassAndType) -> List[MTaskItemE]:
-		self._logger.debug(f"Reading non synchronized entities 'MTaskItemE' for task '{task_def}'.")
-		raise NotImplementedError("In-memory repository does not offer list of non-synced items.")
-
 
 class RepositoryFactory(object):
 	def __init__(self, logger: Logger, sqlite_api: SqliteApi):

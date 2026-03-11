@@ -1,6 +1,5 @@
 import urllib
 from datetime import datetime
-from ftplib import FTP_TLS, FTP
 from http import HTTPStatus
 from logging import Logger
 from pathlib import Path
@@ -11,10 +10,10 @@ from typing import Tuple, List
 import bs4
 import requests
 
-from .mconfig import Config, ConfigScrapperRoumen, ConfigFtp
+from .mconfig import Config, ConfigScrapperRoumen
 from .mformatters import Formatter
 from .mrepository import Repository
-from .mrepository_entities import TaskClassAndType, TaskClass, TaskType, MTaskItemE, TaskSyncStatusEnum
+from .mrepository_entities import TaskClassAndType, TaskClass, TaskType
 from .mscrappers_api import TaskEvents, TaskEventDispatcher
 from .mscrappers_eventhandlers import TaskEventLogger, TaskEventRepositoryWriter
 
@@ -26,15 +25,11 @@ class TaskFactory(object):
 		self._repository_persistent = repository_persistent
 		self._repository_in_memory = repository_in_memory
 
-	def _create_event_handler(
-			self,
-			task_def: TaskClassAndType,
-			success_task_sync_status: TaskSyncStatusEnum = TaskSyncStatusEnum.NOT_SYNCED
-	):
+	def _create_event_handler(self, task_def: TaskClassAndType):
 		return TaskEventDispatcher((
 			TaskEventLogger(self._logger.getChild("event"), task_def),
-			TaskEventRepositoryWriter(self._repository_in_memory, task_def, success_task_sync_status),
-			TaskEventRepositoryWriter(self._repository_persistent, task_def, success_task_sync_status),
+			TaskEventRepositoryWriter(self._repository_in_memory, task_def),
+			TaskEventRepositoryWriter(self._repository_persistent, task_def),
 		))
 
 	def create_task_dummy(self, description: str):
@@ -71,17 +66,6 @@ class TaskFactory(object):
 			self._logger.getChild(str(task_def)),
 			f"{self._config.scrappers.storage_path}",
 			urls
-		)
-
-	def create_task_ftp_sync(self, task_type: TaskType):
-		task_def = TaskClassAndType(TaskClass.SYNC, task_type)
-		return SyncToFtp(
-			self._create_event_handler(task_def, TaskSyncStatusEnum.IGNORE),
-			self._logger.getChild(str(task_def)),
-			task_def,
-			self._repository_persistent,
-			self._config.scrappers.storage_path,
-			self._config.ftp
 		)
 
 
@@ -310,63 +294,3 @@ class TaskYoutubeDownload(object):
 		except Exception as ex:
 			self._event.on_item_progress(f"Exception {ex}.")
 """
-
-"""
-	SYNC TASK
-"""
-
-
-class SyncToFtp(object):
-	def __init__(
-			self,
-			task_event_handler: TaskEvents,
-			logger: Logger,
-			task_def: TaskClassAndType,
-			repository: Repository,
-			storage_dir: Path,
-			ftp_config: ConfigFtp
-	):
-		self._event = task_event_handler
-		self._logger = logger
-		self._logger_ftp = logger.getChild("ftp")
-		self._task_def = task_def
-		self._repository = repository
-		self._storage_dir = storage_dir
-		self._ftp_config = ftp_config
-		self._event.on_new()
-
-	def __call__(self):
-		self._event.on_start()
-		try:
-			with FTP_TLS(host=self._ftp_config.host, user=self._ftp_config.user, passwd=self._ftp_config.password) as ftp:
-				for item_to_sync in self._repository.read_task_items_not_synced(self._task_def):
-					self._item_sync(ftp, item_to_sync)
-			self._event.on_finish()
-		except Exception as ex:
-			self._event.on_error(ex)
-
-	def _item_sync(self, ftp: FTP, item: MTaskItemE):
-		try:
-			self._event.on_item_start(item.item_name, item.pk_id)
-			self._logger_ftp.info(f"Changing directory to root.")
-			ftp.cwd("/")
-
-			# go to required directory (and create the directory structure if needed)
-			lp = Path(item.destination_path)
-			for path_dir in lp.parent.parts:
-				if not len(list(filter(lambda r: r[0] == path_dir and r[1].get("type", "") == "dir", ftp.mlsd()))) > 0:
-					self._logger_ftp.info(f"Creating directory '{path_dir}'.")
-					ftp.mkd(path_dir)
-				ftp.cwd(path_dir)
-			self._logger_ftp.info(f"Directory changed to '{lp.parent}'.")
-
-			with open(self._storage_dir / lp, "rb") as fp:
-				ftp.storbinary("STOR " + lp.name, fp=fp, blocksize=self._ftp_config.blocksize)
-
-			item.sync_status = TaskSyncStatusEnum.SYNCED.value
-			self._repository.update_entity(item)
-
-			self._event.on_item_finish(lp.name)
-
-		except Exception as ex:
-			self._event.on_item_error(ex)
