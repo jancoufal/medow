@@ -203,7 +203,11 @@ class TaskRoumen(object):
 	""" mine all the image paths from website """
 	def _scrap_image_names_from_website(self) -> List[str]:
 		self._logger.debug(f"Requesting page '{self._config_scrapper.base_url}' for images.")
-		get_result = requests.get(self._config_scrapper.base_url, params=self._config_scrapper.url_params)
+		get_result = requests.get(
+			self._config_scrapper.base_url,
+			params=self._config_scrapper.url_params,
+			timeout=self._config_scrapper.request_timeout_seconds
+		)
 		self._logger.debug(f"'{self._config_scrapper.base_url}' result code: '{get_result.status_code}'.")
 		soup = bs4.BeautifulSoup(get_result.content.decode(get_result.apparent_encoding), features="html.parser")
 
