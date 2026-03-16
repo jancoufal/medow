@@ -37,7 +37,15 @@
 		<fieldset>
 			<div class="input-row">
 				<label for="url-list">Video URLs:</label>
-				<textarea id="url-list" name="url-list" cols="80" rows="10">{{ page_data.request.args.get('url-list', '') }}</textarea>
+				<textarea id="url-list" name="url-list" cols="80" rows="10">{{ page_data.request.form.get('url-list', page_data.request.args.get('url-list', ''))|e }}</textarea>
+			</div>
+			<div class="input-row">
+				<label for="yt-cookies">yt-dlp cookies:</label>
+				<textarea id="yt-cookies" name="yt-cookies" cols="80" rows="8" placeholder="# Netscape HTTP Cookie File&#10;.youtube.com&#9;TRUE&#9;/&#9;TRUE&#9;2147483647&#9;SID&#9;your_cookie_value">{{ page_data.request.form.get('yt-cookies', '')|e }}</textarea>
+				<div>
+					Paste cookies exported in Netscape cookie file format (for example from a browser cookie exporter).
+					One cookie per line, tab-separated columns: domain, include_subdomains, path, secure, expires, name, value.
+				</div>
 			</div>
 			<div class="input-row">
 				<label for="download-submit">&#x21CA;</label>

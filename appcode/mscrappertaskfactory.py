@@ -3,6 +3,7 @@ from datetime import datetime
 from http import HTTPStatus
 from logging import Logger
 from pathlib import Path
+from tempfile import NamedTemporaryFile
 from time import sleep
 from typing import Any, Tuple, List
 
@@ -56,7 +57,7 @@ class TaskFactory(object):
 			self._repository
 		)
 
-	def create_task_youtube_dl(self, urls: Tuple[str, ...]):
+	def create_task_youtube_dl(self, urls: Tuple[str, ...], cookies_text: str | None = None):
 		task_def = TaskClassAndType(TaskClass.LEECH, TaskType.YOUTUBE_DL)
 		return TaskYoutubeDownload(
 			self._create_event_handler(task_def),
@@ -64,6 +65,7 @@ class TaskFactory(object):
 			task_def,
 			self._config.scrappers.storage_path,
 			self._config.youtube_dl,
+			cookies_text,
 			urls
 		)
 
@@ -239,6 +241,7 @@ class TaskYoutubeDownload(object):
 			task_def: TaskClassAndType,
 			storage_base_path: Path,
 			config_youtube_dl: ConfigYoutubeDl,
+			cookies_text: str | None,
 			urls: Tuple[str, ...]
 	):
 		self._event = task_event_handler
@@ -246,6 +249,7 @@ class TaskYoutubeDownload(object):
 		self._task_def = task_def
 		self._storage_base_path = storage_base_path
 		self._config_youtube_dl = config_youtube_dl
+		self._cookies_text = cookies_text
 		self._urls = tuple(url.strip() for url in urls if len(url.strip()) > 0)
 		self._relative_directory = None
 		self._destination_path = None
@@ -259,31 +263,39 @@ class TaskYoutubeDownload(object):
 			self._relative_directory = Path(self._task_def.typ.value).joinpath(f"{ts:%Y}").joinpath(f"{ts:%V}")
 			destination_directory = self._storage_base_path / self._relative_directory
 			destination_directory.mkdir(parents=True, exist_ok=True)
+			runtime_cookie_file = self._create_runtime_cookie_file(destination_directory)
 
-			for url in self._urls:
-				try:
-					self._destination_path = None
-					self._event.on_item_start(url)
+			try:
+				for url in self._urls:
+					try:
+						self._destination_path = None
+						self._event.on_item_start(url)
 
-					with YoutubeDL(self._create_ydl_options(destination_directory)) as ydl:
-						info = ydl.extract_info(url, download=True)
+						with YoutubeDL(self._create_ydl_options(destination_directory, runtime_cookie_file)) as ydl:
+							info = ydl.extract_info(url, download=True)
+
+							if self._destination_path is None:
+								self._destination_path = self._extract_relative_destination_path(ydl, info)
 
 						if self._destination_path is None:
-							self._destination_path = self._extract_relative_destination_path(ydl, info)
+							raise RuntimeError(f"Could not determine destination path for '{url}'.")
+						self._event.on_item_finish(self._destination_path)
 
-					if self._destination_path is None:
-						raise RuntimeError(f"Could not determine destination path for '{url}'.")
-					self._event.on_item_finish(self._destination_path)
-
-				except Exception as ex:
-					self._event.on_item_error(ex)
+					except Exception as ex:
+						self._event.on_item_error(ex)
+			finally:
+				if runtime_cookie_file is not None:
+					try:
+						Path(runtime_cookie_file).unlink()
+					except Exception as ex:
+						self._logger.warning(f"Could not remove temporary cookie file '{runtime_cookie_file}': {ex!s}")
 
 			self._event.on_finish()
 
 		except Exception as ex:
 			self._event.on_error(ex)
 
-	def _create_ydl_options(self, destination_directory: Path) -> dict[str, Any]:
+	def _create_ydl_options(self, destination_directory: Path, runtime_cookie_file: str | None) -> dict[str, Any]:
 		options = {
 			"cachedir": False,
 			"noplaylist": True,
@@ -296,14 +308,35 @@ class TaskYoutubeDownload(object):
 			"outtmpl": str(destination_directory / "%(title)s-%(id)s.%(ext)s"),
 		}
 
-		if self._config_youtube_dl.cookies_file is not None and len(self._config_youtube_dl.cookies_file.strip()) > 0:
+		if runtime_cookie_file is not None:
+			options["cookiefile"] = runtime_cookie_file
+		elif self._config_youtube_dl.cookies_file is not None and len(self._config_youtube_dl.cookies_file.strip()) > 0:
 			options["cookiefile"] = self._config_youtube_dl.cookies_file
 
-		if self._config_youtube_dl.cookies_from_browser is not None and len(self._config_youtube_dl.cookies_from_browser.strip()) > 0:
+		if "cookiefile" not in options and self._config_youtube_dl.cookies_from_browser is not None and len(self._config_youtube_dl.cookies_from_browser.strip()) > 0:
 			# yt-dlp expects a tuple in python API mode.
 			options["cookiesfrombrowser"] = (self._config_youtube_dl.cookies_from_browser.strip(),)
 
 		return options
+
+	def _create_runtime_cookie_file(self, destination_directory: Path) -> str | None:
+		if self._cookies_text is None or len(self._cookies_text.strip()) == 0:
+			return None
+
+		cookies_text = self._cookies_text.strip()
+		if not cookies_text.endswith("\n"):
+			cookies_text += "\n"
+
+		with NamedTemporaryFile(
+			mode="w",
+			encoding="utf-8",
+			dir=str(destination_directory),
+			prefix="yt-dlp-cookies-",
+			suffix=".txt",
+			delete=False
+		) as tmp:
+			tmp.write(cookies_text)
+			return tmp.name
 
 	def _progress_hook(self, info: dict[str, Any], *args, **kwargs):
 		try:

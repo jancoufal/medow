@@ -245,7 +245,11 @@ def page_scrap():
 			case ("POST", "yt_dl"):
 				if request.form.get("url-list", None) is not None:
 					urls = tuple(url.strip() for url in request.form.get("url-list", "").split())
-					tasks.append(task_factory.create_task_youtube_dl(urls))
+					cookies_text = request.form.get("yt-cookies", "").strip()
+					tasks.append(task_factory.create_task_youtube_dl(
+						urls,
+						None if len(cookies_text) == 0 else cookies_text
+					))
 
 		for task in tasks:
 			task_executor.submit(task)
