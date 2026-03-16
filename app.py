@@ -276,7 +276,7 @@ def page_view(view_source: str):
 		)
 
 		page_data.update({
-			"base_path": url_for("static", filename=config.scrappers.storage_path_for_static),
+			"base_path": url_for("static", filename=config.scrappers.storage_path_for_static).rstrip("/"),
 			"task_items": [item for item in items if item.destination_path is not None]
 		})
 
