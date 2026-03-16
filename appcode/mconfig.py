@@ -61,6 +61,12 @@ class ConfigScrappers:
 
 
 @dataclass
+class ConfigYoutubeDl:
+	cookies_file: str | None = None
+	cookies_from_browser: str | None = None
+
+
+@dataclass
 class Config(YAMLWizard):
 	site_title: str
 	app_debug: bool
@@ -71,3 +77,4 @@ class Config(YAMLWizard):
 	listing_limits: ConfigListingLimits
 	worker_thread: ConfigWorkerThread
 	scrappers: ConfigScrappers
+	youtube_dl: ConfigYoutubeDl = field(default_factory=ConfigYoutubeDl)

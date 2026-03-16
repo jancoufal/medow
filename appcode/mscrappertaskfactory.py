@@ -10,7 +10,7 @@ import bs4
 import requests
 from yt_dlp import YoutubeDL
 
-from .mconfig import Config, ConfigScrapperRoumen
+from .mconfig import Config, ConfigScrapperRoumen, ConfigYoutubeDl
 from .mformatters import Formatter
 from .mrepository import Repository
 from .mrepository_entities import TaskClassAndType, TaskClass, TaskType
@@ -63,6 +63,7 @@ class TaskFactory(object):
 			self._logger.getChild(str(task_def)),
 			task_def,
 			self._config.scrappers.storage_path,
+			self._config.youtube_dl,
 			urls
 		)
 
@@ -237,12 +238,14 @@ class TaskYoutubeDownload(object):
 			logger: Logger,
 			task_def: TaskClassAndType,
 			storage_base_path: Path,
+			config_youtube_dl: ConfigYoutubeDl,
 			urls: Tuple[str, ...]
 	):
 		self._event = task_event_handler
 		self._logger = logger
 		self._task_def = task_def
 		self._storage_base_path = storage_base_path
+		self._config_youtube_dl = config_youtube_dl
 		self._urls = tuple(url.strip() for url in urls if len(url.strip()) > 0)
 		self._relative_directory = None
 		self._destination_path = None
@@ -281,7 +284,7 @@ class TaskYoutubeDownload(object):
 			self._event.on_error(ex)
 
 	def _create_ydl_options(self, destination_directory: Path) -> dict[str, Any]:
-		return {
+		options = {
 			"cachedir": False,
 			"noplaylist": True,
 			"nopart": True,
@@ -292,6 +295,15 @@ class TaskYoutubeDownload(object):
 			"format": "best",
 			"outtmpl": str(destination_directory / "%(title)s-%(id)s.%(ext)s"),
 		}
+
+		if self._config_youtube_dl.cookies_file is not None and len(self._config_youtube_dl.cookies_file.strip()) > 0:
+			options["cookiefile"] = self._config_youtube_dl.cookies_file
+
+		if self._config_youtube_dl.cookies_from_browser is not None and len(self._config_youtube_dl.cookies_from_browser.strip()) > 0:
+			# yt-dlp expects a tuple in python API mode.
+			options["cookiesfrombrowser"] = (self._config_youtube_dl.cookies_from_browser.strip(),)
+
+		return options
 
 	def _progress_hook(self, info: dict[str, Any], *args, **kwargs):
 		try:
