@@ -304,7 +304,15 @@ class TaskYoutubeDownload(object):
 			"no_color": True,
 			"logger": _YoutubeLogger(self._logger),
 			"progress_hooks": [self._progress_hook],
-			"format": "best",
+			# Prefer separate video+audio streams and fall back to a combined stream.
+			# Using plain "best" is too strict and often fails on modern YouTube manifests.
+			"format": "bv*+ba/b",
+			"extractor_args": {
+				"youtube": {
+					# Avoid creator-specific client path that tends to trigger challenge issues.
+					"player_client": ["android", "web"],
+				}
+			},
 			"outtmpl": str(destination_directory / "%(title)s-%(id)s.%(ext)s"),
 		}
 
